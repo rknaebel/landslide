@@ -87,3 +87,9 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# intelliJ
+.idea/
+
+# Apple?
+.DS_Store
