@@ -14,7 +14,7 @@ alt = 'DEM_altitude.tif'
 slp = 'DEM_slope.tif'
 
 
-def loadSateliteFile(date, normalize=False):
+def loadSateliteFile(date, normalize=True):
     img = io.imread(fld + date + ".tif").astype(np.float32)
     ndvi = io.imread(fld + date + "_NDVI.tif").astype(np.float32)
     mask = io.imread(fld + date + "_mask_ls.tif").astype(np.float32)
@@ -24,7 +24,7 @@ def loadSateliteFile(date, normalize=False):
     return img, ndvi, mask
 
 
-def loadStaticData(normalize=False):
+def loadStaticData(normalize=True):
     altitude = io.imread(fld + alt).astype(np.float32)
     slope = io.imread(fld + slp).astype(np.float32)
     if normalize:
@@ -33,27 +33,63 @@ def loadStaticData(normalize=False):
     return altitude, slope
 
 
-def loadLandslideDataset():
-    satelite_images = {}
-    for idx, img_name in enumerate(sateliteImages):
-        satelite_images[idx] = {
-            "img": io.imread(fld + img_name + ".tif").astype(np.float32),
-            "ndvi": io.imread(fld + img_name + "_NDVI.tif").astype(np.float32),
-            "mask": io.imread(fld + img_name + "_mask_ls.tif").astype(np.float32)
-        }
+def extractPatch(data, pos, size):
+    x, y = pos
+    diff = size // 2
+    patch = data[x - diff:x + diff + 1, y - diff:y + diff + 1, :]
+    return patch
+
+
+def loadLandslideDataset(dates):
+    last_image = None  # TODO maybe replace by another flag
+    satelite_images = []
+    dates = [dates[0]] + dates
+    for date in dates:
+        img, nvdi, mask = loadSateliteFile(date)
+        image = np.concatenate((img, np.expand_dims(nvdi, 2)), axis=2)
+        if last_image != None:
+            image = np.concatenate((image, last_image), axis=2)
+            satelite_images.append((image, mask))
+        else:
+            last_image = image
+
     altitude, slope = loadStaticData()
 
     return satelite_images, altitude, slope
 
-def LandslideGenerator():
+
+def getLandslideDataFor(date):
+    date_idx = sateliteImages.index(date)
+    prev_date_idx = date_idx - 1 if date_idx >= 1 else 0
+    img, nvdi, mask = loadSateliteFile(date)
+    prev_img, prev_nvdi, prev_mask = loadSateliteFile(sateliteImages[prev_date_idx])
+    image = np.concatenate((img, np.expand_dims(nvdi, 2)), axis=2)
+    prev_image = np.concatenate((prev_img, np.expand_dims(prev_nvdi, 2)), axis=2)
+    image = np.concatenate((image, prev_image), axis=2)
+    return image, mask
+
+
+def LandslideGenerator(date, size=25, normalize=True):
+    # TODO what happens with size==0? Does even numbers make sense?
     # load data
-
+    sat_image, mask = getLandslideDataFor(date)
+    altitude, slope = loadStaticData()
     # generate coordinates (one for each set of lables)
+    positive = zip(*np.where(mask == 1))
+    negative = zip(*np.where(mask == 0))
+    # TODO sample ratio of p from s1 and (1-p) from s2
+    # extract patches (subimages) of positive and negative samples
+    correctSize = lambda x: x.shape == (size, size, 12)
+    sample_pos = list(filter(correctSize, map(lambda x: extractPatch(sat_image, x, size), positive)))
+    sample_neg = list(filter(correctSize, map(lambda x: extractPatch(sat_image, x, size), negative)))
+    # combine to np batch and return
+    X = np.stack(sample_pos + sample_neg)
+    y = np.concatenate((
+        np.ones((len(sample_pos)), dtype=np.float32),
+        np.zeros((len(sample_neg)), dtype=np.float32)
+    ))
+    return X, y
 
-    # sample ratio of p from s1 and (1-p) from s2
-
-    # return combined batch
-    pass
 
 def getTrainDataForDir(year=2, areaSize=8, seed=1, numNeg=100):
     altMatrix = np.array(io.imread(fld + alt), dtype=np.float32) / 2555.0
