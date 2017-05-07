@@ -1,5 +1,5 @@
 from keras.models import Sequential
-from keras.layers import Conv2D, Activation, MaxPool2D, Dropout, Flatten, Dense
+from keras.layers import Conv2D, Activation, MaxPool2D, Dropout, Flatten, Dense, AvgPool2D
 
 import dataset
 import networks
@@ -22,10 +22,13 @@ def main():
     model.add(Activation('relu'))
     model.add(MaxPool2D((1, 1), strides=(1, 1)))
     model.add(Dropout(0.25))
+
+    # model.add(Dense(512, activation='relu', name='dense'))
+    # model.add(Dropout(0.25))
+
+    model.add(AvgPool2D((3, 3), strides=(1, 1)))
     model.add(Flatten(name="flatten"))
 
-    model.add(Dense(512, activation='relu', name='dense'))
-    model.add(Dropout(0.25))
     model.add(Dense(1, name='last_layer'))
     model.add(Activation('sigmoid'))
 
