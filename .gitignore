@@ -93,3 +93,6 @@ ENV/
 
 # Apple?
 .DS_Store
+
+# data
+*.tif
