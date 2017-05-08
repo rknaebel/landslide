@@ -5,12 +5,14 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
+import math
+
 # global params
 fld = 'data/'
 
 sateliteImages = ['20090526', '20110514', '20120524', '20130608',
                   '20140517', '20150507', '20160526']
-sateliteImages = sateliteImages[:2]
+sateliteImages = sateliteImages[:3]
 alt = 'DEM_altitude.tif'
 slp = 'DEM_slope.tif'
 
@@ -104,23 +106,21 @@ def LandslideGenerator(data, size=25, batch_size=64, p=0.2, normalize=True):
     batch_size_neg = batch_size - batch_size_pos
 
     while True:
-        # sample_idx_pos = np.random.choice(len(positives), batch_size_pos)
-        # sample_idx_neg = np.random.choice(len(negatives), batch_size_neg)
-
-        idx_pos = np.array_split(np.random.permutation(len(positives)), len(positives) // batch_size_pos)[:-1]
-        idx_neg = np.array_split(np.random.permutation(len(negatives)), len(negatives) // batch_size_neg)[:-1]
-
+        #
+        idx_pos = np.array_split(np.random.permutation(len(positives)), math.ceil(len(positives) / batch_size_pos))[:-1]
+        idx_neg = np.array_split(np.random.permutation(len(negatives)), math.ceil(len(negatives) / batch_size_neg))[:-1]
+        #
         for sample_idx_pos, sample_idx_neg in zip(idx_pos, idx_neg):
+            #
             X = np.stack([
                 *map(lambda x: extractPatch(sat_images, x[0], x[1], x[2], size), positives[sample_idx_pos]),
                 *map(lambda x: extractPatch(sat_images, x[0], x[1], x[2], size), negatives[sample_idx_neg])
             ])
-
+            #
             y = np.concatenate((
-                np.ones(batch_size_pos, dtype=np.float32),
-                np.zeros(batch_size_neg, dtype=np.float32)
+                np.ones(len(sample_idx_pos), dtype=np.float32), # TODO len(sample_idx_pos) == batch_size_pos?!
+                np.zeros(len(sample_idx_neg), dtype=np.float32)
             ))
-
             yield X, y
 
 
@@ -151,80 +151,3 @@ def LandslideData(date, size=25, normalize=True):
     ))
     return X, y
 
-
-def getTrainDataForDir(year=2, areaSize=8, seed=1, numNeg=100):
-    altMatrix = np.array(io.imread(fld + alt), dtype=np.float32) / 2555.0
-    slpMatrix = np.array(io.imread(fld + slp), dtype=np.float32) / 52.0
-
-    orgi = np.array(io.imread(fld + fimgs[year]), dtype=np.float32) / 20000.0
-    addi = np.array(io.imread(fld + nimgs[year]), dtype=np.float32) / 20000.0
-
-    porgi = np.array(io.imread(fld + fimgs[year - 1]), dtype=np.float32) / 20000.0
-    paddi = np.array(io.imread(fld + nimgs[year - 1]), dtype=np.float32) / 20000.0
-
-    resi = io.imread(fld + masks[year])
-
-    (posXIDs, posYIDs) = np.where(resi == 1.0)
-    (negXIDs, negYIDs) = np.where(resi == 0.0)
-
-    # create train data for one episode
-    # create positive instances
-
-    diffSize = areaSize // 2
-
-    numPos = len(posXIDs)
-    posIDs = np.arange(numPos)
-    negIDs = np.arange(len(negXIDs))
-    random.seed(seed)
-    random.shuffle(negIDs)
-    useNegIDs = np.min([len(negIDs), numNeg * numPos])
-    negIDs = negIDs[0:useNegIDs]
-    numInstances = len(posIDs) + len(negIDs)
-    label = np.zeros([numInstances, 1])
-    dataPre = np.zeros([numInstances, areaSize, areaSize, orgi.shape[2]])
-    dataPost = np.zeros([numInstances, areaSize, areaSize, orgi.shape[2]])
-    dataSLP = np.zeros([numInstances, 1])
-    dataALT = np.zeros([numInstances, 1])
-    dataNDVI = np.zeros([numInstances, 1])
-    counter = 0
-    for posID in posIDs:
-        label[counter] = 1.0
-        curX = posXIDs[posID]
-        curY = posYIDs[posID]
-        orgiTmp = orgi[curX - diffSize:curX + diffSize, curY - diffSize:curY + diffSize, :]
-        dataPost[counter, 0:orgiTmp.shape[0], 0:orgiTmp.shape[1], 0:orgiTmp.shape[2]] = orgiTmp
-        preTmp = porgi[curX - diffSize:curX + diffSize, curY - diffSize:curY + diffSize, :]
-        dataPre[counter, 0:orgiTmp.shape[0], 0:orgiTmp.shape[1], 0:orgiTmp.shape[2]] = preTmp
-        dataALT[counter] = altMatrix[curX, curY]
-        dataSLP[counter] = slpMatrix[curX, curY]
-        dataNDVI[counter] = addi[curX, curY] - paddi[curX, curY]
-        counter += 1
-
-    for negID in negIDs:
-        label[counter] = 0.0
-        curX = negXIDs[negID]
-        curY = negYIDs[negID]
-        orgiTmp = orgi[curX - diffSize:curX + diffSize, curY - diffSize:curY + diffSize, :]
-        dataPost[counter, 0:orgiTmp.shape[0], 0:orgiTmp.shape[1], 0:orgiTmp.shape[2]] = orgiTmp
-        preTmp = porgi[curX - diffSize:curX + diffSize, curY - diffSize:curY + diffSize, :]
-        dataPre[counter, 0:orgiTmp.shape[0], 0:orgiTmp.shape[1], 0:orgiTmp.shape[2]] = preTmp
-        dataALT[counter] = altMatrix[curX, curY]
-        dataSLP[counter] = slpMatrix[curX, curY]
-        dataNDVI[counter] = addi[curX, curY] - paddi[curX, curY]
-        counter += 1
-    return (dataPre, dataPost, dataALT, dataSLP, dataNDVI, label)
-
-
-if __name__ == "__main__":
-    # parameter
-    areaSize = 4
-    seed = 1
-    numNeg = 10
-    trainYears = [1, 2, 3, 4, 5]
-    testYear = 6
-    # create validation set
-    # (dataPreTest, dataPostTest, dataALTTest, dataSLPTest, dataNDVITest, labelTest) = getTrainDataForDir(year=testYear,
-    #                                                                                                    areaSize=areaSize,
-    #                                                                                                    seed=seed,
-    #                                                                                                    numNeg=numNeg)
-    print("All Done!")
