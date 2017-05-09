@@ -3,13 +3,14 @@
 from skimage import io
 import numpy as np
 import random
-import matplotlib.pyplot as plt
+import h5py
 
 import math
 
 ###############################################################################
 ###############################################################################
 import logging
+
 ###############################################################################
 
 # create logger
@@ -67,24 +68,6 @@ def extractPatch(data, date, x, y, size):
     return patch
 
 
-def loadLandslideDataset(dates):
-    last_image = None  # TODO maybe replace by another flag
-    satelite_images = []
-    dates = [dates[0]] + dates
-    for date in dates:
-        img, nvdi, mask = loadSateliteFile(date)
-        image = np.concatenate((img, np.expand_dims(nvdi, 2)), axis=2)
-        if last_image != None:
-            image = np.concatenate((image, last_image), axis=2)
-            satelite_images.append((image, mask))
-        else:
-            last_image = image
-
-    altitude, slope = loadStaticData()
-
-    return satelite_images, altitude, slope
-
-
 def getLandslideDataFor(date):
     altitute, slope = loadStaticData()
     date_idx = sateliteImages.index(date)
@@ -106,40 +89,6 @@ def patchValidator(shape, pos, size):
     return True
 
 
-def getDataset():
-    logger.info("load landslides and masks")
-    sat_images, masks = zip(*(getLandslideDataFor(d) for d in sateliteImages))
-    sat_images = np.stack(sat_images, axis=0)
-
-    logger.info("calculate coordinates per mask")
-    positives, negatives = [], []
-    for year, mask in enumerate(masks):
-        logger.info("  process mask {}".format(year))
-        num_pos = int(mask.sum())
-        num_neg = int(mask.size - num_pos)
-
-        pos = zip(*np.where(mask == 1))
-        # positives.append(np.array([(idx, x, y) for x, y in pos]))
-        positive = np.empty((num_pos,3), dtype=np.float32)
-        for idx, (x, y) in enumerate(pos):
-            positive[idx] = (year, x, y)
-        positives.append(positive)
-
-        neg = zip(*np.where(mask == 0))
-        # negatives.append(np.array([(year, x, y) for x, y in neg]))
-        negative = np.empty((num_neg, 3), dtype=np.float32)
-        for idx, (x, y) in enumerate(neg):
-            negative[idx] = (year, x, y)
-        negatives.append(negative)
-
-    logger.info("concatenate coordinates")
-    positives = np.concatenate(positives)
-    negatives = np.concatenate(negatives)
-
-    return sat_images, positives, negatives, altitute, slope
-
-import h5py
-
 def makeH5Dataset(path):
     f = h5py.File(path, "w")
 
@@ -159,7 +108,7 @@ def makeH5Dataset(path):
 
         pos = zip(*np.where(mask == 1))
         # positives.append(np.array([(idx, x, y) for x, y in pos]))
-        positive = np.empty((num_pos,3), dtype=np.int32)
+        positive = np.empty((num_pos, 3), dtype=np.int32)
         for idx, (x, y) in enumerate(pos):
             positive[idx] = (year, x, y)
         positives.append(positive)
@@ -180,30 +129,10 @@ def makeH5Dataset(path):
 
     return True
 
+
 def indexGenerator(data, validator, image_size, size, batch_size):
     """
     
-    :param data: fh on h5py dataset
-    :param validator: filter applied to every position
-    :param batch_size: 
-    :return: 
-    """
-    batch = np.empty((batch_size,3), dtype=np.int32)
-    ctr = 0
-    while True:
-        indices = np.random.permutation(len(data))
-        for i in indices:
-            if validator(image_size,data[i][1:],size):
-                batch[ctr] = data[i]
-                ctr += 1
-            if ctr == batch_size:
-                yield batch
-                ctr = 0
-
-
-def fullIndexGenerator(image_size, size, batch_size):
-    """
-
     :param data: fh on h5py dataset
     :param validator: filter applied to every position
     :param batch_size: 
@@ -222,7 +151,7 @@ def fullIndexGenerator(image_size, size, batch_size):
                 ctr = 0
 
 
-def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4):
+def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4, years=[0]):
     data = h5py.File(path, "r")
     # calculate the batch size per label
     batch_size_pos = int(batch_size * p)
@@ -240,71 +169,15 @@ def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4):
         ])
         #
         y = np.concatenate((
-            np.ones( batch_size_pos, dtype=np.float32),
+            np.ones(batch_size_pos, dtype=np.float32),
             np.zeros(batch_size_neg, dtype=np.float32)
         ))
         yield X, y
 
-def LandslideGenerator(data, size=25, batch_size=64, p=0.2, normalize=True):
-    sat_images, positives, negatives, altitute, slope = data
-
-    # filter patches that satisfy the validator - coordinates where area is within the image
-    positives = np.array(list(filter(lambda x: patchValidator(sat_images.shape[1:], x[1:], size), positives)))
-    negatives = np.array(list(filter(lambda x: patchValidator(sat_images.shape[1:], x[1:], size), negatives)))
-    # calculate the batch size per label
-    batch_size_pos = int(batch_size * p)
-    batch_size_neg = batch_size - batch_size_pos
-
-    while True:
-        #
-        idx_pos = np.array_split(np.random.permutation(len(positives)), math.ceil(len(positives) / batch_size_pos))[:-1]
-        idx_neg = np.array_split(np.random.permutation(len(negatives)), math.ceil(len(negatives) / batch_size_neg))[:-1]
-        #
-        for sample_idx_pos, sample_idx_neg in zip(idx_pos, idx_neg):
-            #
-            X = np.stack([
-                *map(lambda x: extractPatch(sat_images, x[0], x[1], x[2], size), positives[sample_idx_pos]),
-                *map(lambda x: extractPatch(sat_images, x[0], x[1], x[2], size), negatives[sample_idx_neg])
-            ])
-            #
-            y = np.concatenate((
-                np.ones(len(sample_idx_pos), dtype=np.float32), # TODO len(sample_idx_pos) == batch_size_pos?!
-                np.zeros(len(sample_idx_neg), dtype=np.float32)
-            ))
-            yield X, y
-
-
-def LandslideData(date, size=25, normalize=True):
-    # TODO what happens with size==0? Does even numbers make sense?
-    # load data
-    print("load landslide for given date")
-    sat_image, mask = getLandslideDataFor(date)
-    altitude, slope = loadStaticData()
-    # generate coordinates (one for each set of lables)
-    print("create coordinates for pos and neg labels")
-    positive = zip(*np.where(mask == 1))
-    negative = zip(*np.where(mask == 0))
-    # TODO sample ratio of p from s1 and (1-p) from s2
-    # extract patches (subimages) of positive and negative samples
-    correctSize = lambda x: x.shape == (size, size, 12)
-    print("sample positive")
-    sample_pos = list(filter(correctSize, map(lambda x: extractPatch(sat_image, x, size), positive)))
-    print("sample negative")
-    sample_neg = list(filter(correctSize, map(lambda x: extractPatch(sat_image, x, size), negative)))
-    # combine to np batch and return
-    print("stack samples")
-    X = np.stack(sample_pos + sample_neg)
-    print("create corresponding labels")
-    y = np.concatenate((
-        np.ones((len(sample_pos)), dtype=np.float32),
-        np.zeros((len(sample_neg)), dtype=np.float32)
-    ))
-    return X, y
-
 
 if __name__ == "__main__":
-    path = "/tmp/landslide/data.h5"
+    path = "tmp/data.h5"
     makeH5Dataset(path)
     gen = patchGeneratorFromH5(path, 25, 128, 0.4)
-    for i, (X,y) in enumerate(gen):
+    for i, (X, y) in enumerate(gen):
         print(i, X.shape, y.shape)
