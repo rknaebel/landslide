@@ -33,6 +33,12 @@ parser.add_argument("--area", action="store", dest="area_size",
 parser.add_argument("--queue", action="store", dest="queue_size",
                     default=50, type=int)
 
+parser.add_argument("--p", action="store", dest="p_train",
+                    default=0.5, type=float)
+
+parser.add_argument("--p_val", action="store", dest="p_val",
+                    default=0.01, type=float)
+
 args = parser.parse_args()
 
 args.steps_per_epoch = args.samples // args.batch_size
@@ -40,19 +46,25 @@ args.steps_per_val = args.samples_val // args.batch_size
 
 ################################################################################
 
+
 def main():
+    print("check for data.h5")
+    try:
+        open(args.data ,"r")
+    except FileNotFoundError:
+        dataset.makeH5Dataset(args.data)
     print("initialize training generator")
     train_gen = dataset.patchGeneratorFromH5(args.data,
                                              size=args.area_size,
                                              batch_size=args.batch_size,
-                                             p=0.2)
+                                             p=args.p_train)
     print("initialize validation generator")
     val_gen = dataset.patchGeneratorFromH5(args.data,
                                            size=args.area_size,
                                            batch_size=args.batch_size,
-                                           p=0.01)
+                                           p=args.p_val)
     print("get network")
-    model = networks.getRenesNetwork(args.area_size)
+    model = networks.getModel1(args.area_size)
     print("compile")
     custom_metrics = list(evaluation.get_metrics().values())
     model.compile(optimizer="adam",
@@ -70,11 +82,13 @@ def main():
     print("store model")
     model.save(args.model)
 
+
 def evaluate_model():
     model = load_model("model.h5", custom_objects=evaluation.get_metrics())
     evaluation.evaluate_model(model, 25)
 
+
 if __name__ == "__main__":
     main()
-    #evaluate_model()
-    pass
+    # evaluate_model()
+    # pass
