@@ -1,4 +1,36 @@
+from keras.models import load_model
 import keras.backend as K
+
+import h5py
+import matplotlib.pyplot as plt
+import numpy as np
+
+import dataset
+
+TEMP_PATH = "tmp/"
+
+def padding(x,p):
+    return np.lib.pad(x,((0,0),(p,p),(p,p),(0,0)),'constant', constant_values=(0,))
+
+def evaluate_model(model, size):
+    data = h5py.File(TEMP_PATH + "data.h5", "r")
+    img = data["sat_images"][-1:]
+    pred = np.empty(img.shape[1:-1])
+    img = padding(data["sat_images"][-1:], 12)
+
+    offset = size // 2
+
+    for x in range(pred.shape[0]):
+        patches = np.stack([dataset.extractPatch(img, 0, x+offset, y+offset, size) for y in range(pred.shape[1])])
+        pred[x] = model.predict(patches).T
+        if x % 100:
+            plt.imshow(pred)
+            plt.show()
+        print(x)
+
+
+
+######################################################
 
 def precision(y_true, y_pred):
     # Count positive samples.

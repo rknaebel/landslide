@@ -1,6 +1,7 @@
 from keras.models import Sequential
 from keras.layers import Conv2D, Activation, MaxPool2D, Dropout, Flatten, Dense, AvgPool2D
 
+import numpy as np
 import dataset
 import networks
 
@@ -98,29 +99,13 @@ def main():
     model.save(TEMP_PATH + "model.h5")
 
 from keras.models import load_model
-import h5py
-import matplotlib.pyplot as plt
-
-def padding(x,p):
-    return np.lib.pad(x,((0,0),(p,p),(p,p),(0,0)),'constant', constant_values=(0,))
+import evaluation
 
 def evaluate_model():
     model = load_model("model.h5", custom_objects={"precision": precision,
                                                    "recall": recall,
                                                    "f1_score": f1_score})
-    data = h5py.File(TEMP_PATH + "data.h5", "r")
-    img = data["sat_images"][-1:]
-    pred = np.empty(img.shape[1:-1])
-    img = padding(data["sat_images"][-1:], 12)
-
-    for x in range(pred.shape[0]):
-        patches = np.stack([dataset.extractPatch(img, 0, x+12, y+12, 25) for y in range(pred.shape[1])])
-        pred[x] = model.predict(patches).T
-        if x % 10:
-            plt.imshow(pred)
-            plt.show()
-        print(x)
-
+    evaluation.evaluate_model(model, 25)
 
 if __name__ == "__main__":
     #main()
