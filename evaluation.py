@@ -1,6 +1,4 @@
 import keras.backend as K
-
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -11,21 +9,43 @@ def padding(x, p):
     return np.lib.pad(x, ((0, 0), (p, p), (p, p), (0, 0)), 'constant', constant_values=(0,))
 
 
-def evaluate_model(model, data_path, size):
-    data = h5py.File(data_path, "r")
-    img = data["sat_images"][-1:]
-    pred = np.empty(img.shape[1:-1])
-    img = padding(data["sat_images"][-1:], 12)
-
+def generate_patches_full(img, batch_size, size):
+    _, x, y, z = img.shape
     offset = size // 2
+    ctr = 0
+    batch = np.empty((batch_size, size, size, z), dtype=np.float32)
+    
+    for i, j in ((i, j) for i in range(x - 2 * offset) for j in range(y - 2 * offset)):
+        batch[ctr] = dataset.extractPatch(img, 0, i + offset, j + offset, size)
+        ctr += 1
+        if ctr == batch_size:
+            yield batch
+            ctr = 0
 
-    for x in range(pred.shape[0]):
-        patches = np.stack([dataset.extractPatch(img, 0, x + offset, y + offset, size) for y in range(pred.shape[1])])
-        pred[x] = model.predict(patches).T
-        if x % 100:
-            plt.imshow(pred)
-            plt.show()
-        print(x)
+
+def predict_image(model, img, size):
+    offset = size // 2
+    batch_size = 1024
+    _, x, y, z = img.shape
+    
+    img = padding(img, offset)
+    
+    y_pred = []
+    for batch in generate_patches_full(img, batch_size, size):
+        y_pred.append(model.predict(batch, batch_size=batch_size, verbose=True))
+    y_pred = np.concatenate(y_pred, axis=0)
+    # reshape to original xy-dimensions
+    y_pred = y_pred.reshape((x, y))
+    
+    return y_pred
+
+
+def save_image_as(img, path):
+    plt.imshow(img)
+    plt.colorbar()
+    plt.savefig(path, dpi=600)
+    plt.close()
+
 
 ###############################################################################
 
@@ -63,13 +83,14 @@ def plot_confusion_matrix(cm, classes,
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
 
+
 ###############################################################################
 
 
 def get_metrics():
     return {"precision": precision,
-            "recall": recall,
-            "f1_score": f1_score}
+            "recall"   : recall,
+            "f1_score" : f1_score}
 
 
 def precision(y_true, y_pred):

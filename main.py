@@ -1,13 +1,17 @@
-import dataset
-import networks
+import argparse
 
 from keras.models import load_model
+
+import dataset
 import evaluation
+import networks
 
 ################################################################################
 
-import argparse
 parser = argparse.ArgumentParser()
+
+parser.add_argument("--mode", action="store", dest="mode",
+                    default="train")
 
 parser.add_argument("--data", action="store", dest="data",
                     default="tmp/data.h5")
@@ -44,13 +48,14 @@ args = parser.parse_args()
 args.steps_per_epoch = args.samples // args.batch_size
 args.steps_per_val = args.samples_val // args.batch_size
 
+
 ################################################################################
 
 
-def main():
+def main_train():
     print("check for data.h5")
     try:
-        open(args.data ,"r")
+        open(args.data, "r")
     except FileNotFoundError:
         dataset.makeH5Dataset(args.data)
     print("initialize training generator")
@@ -64,12 +69,13 @@ def main():
                                            batch_size=args.batch_size,
                                            p=args.p_val)
     print("get network")
-    model = networks.getModel1(args.area_size)
+    model = networks.get_model_2(args.area_size)
     print("compile")
     custom_metrics = list(evaluation.get_metrics().values())
     model.compile(optimizer="adam",
                   loss="binary_crossentropy",
                   metrics=["accuracy"] + custom_metrics)
+    print(model.summary())
     print("start training")
     model.fit_generator(train_gen,
                         steps_per_epoch=args.steps_per_epoch,
@@ -83,12 +89,17 @@ def main():
     model.save(args.model)
 
 
-def evaluate_model():
-    model = load_model("model.h5", custom_objects=evaluation.get_metrics())
-    evaluation.evaluate_model(model, 25)
+def main_eval():
+    print("load specified model")
+    model = load_model(args.model, custom_objects=evaluation.get_metrics())
+    print("run evaluation on final year")
+    evaluation.evaluate_model(model, args.data, args.area_size)
 
 
 if __name__ == "__main__":
-    main()
-    # evaluate_model()
-    # pass
+    if args.mode == "train":
+        main_train()
+    elif args.mode == "eval":
+        main_eval()
+    else:
+        print("Invalid mode!")
