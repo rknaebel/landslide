@@ -1,6 +1,7 @@
 from keras.models import Sequential
 from keras.layers import Convolution2D, MaxPooling2D, Dropout, Flatten, Lambda, Dense, Merge, Activation
 
+from keras.layers import Conv2D, MaxPool2D, AvgPool2D
 
 def getPaulsNetwork(areaSize=8, numFilters=8):
     input_shape = (areaSize, areaSize, 5)
@@ -59,5 +60,22 @@ def getConvNetLandSlideAllImage(areaSize=8, numFilter=8, dim=14):
     model.add(Activation('sigmoid'))
     return model
 
-def getRenesNetwork():
-    pass
+def getRenesNetwork(area):
+    model = Sequential()
+    model.add(Conv2D(32, (5, 5), input_shape=(area, area, 14)))
+    model.add(Activation('relu'))
+    model.add(Conv2D(16, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPool2D((1, 1), strides=(1, 1)))
+    model.add(Dropout(0.25))
+
+    # model.add(Dense(512, activation='relu', name='dense'))
+    # model.add(Dropout(0.25))
+
+    model.add(AvgPool2D((3, 3), strides=(1, 1)))
+    model.add(Flatten(name="flatten"))
+
+    model.add(Dense(1, name='last_layer'))
+    model.add(Activation('sigmoid'))
+
+    return model
