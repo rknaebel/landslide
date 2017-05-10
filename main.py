@@ -1,11 +1,8 @@
-from keras.models import Sequential
-from keras.layers import Conv2D, Activation, MaxPool2D, Dropout, Flatten, Dense, AvgPool2D
-
-import numpy as np
 import dataset
 import networks
 
-from evaluation import precision, recall, f1_score
+from keras.models import load_model
+import evaluation
 
 ################################################################################
 
@@ -57,9 +54,10 @@ def main():
     print("get network")
     model = networks.getRenesNetwork(args.area_size)
     print("compile")
+    custom_metrics = list(evaluation.get_metrics().values())
     model.compile(optimizer="adam",
                   loss="binary_crossentropy",
-                  metrics=["accuracy", precision, recall, f1_score])
+                  metrics=["accuracy"] + custom_metrics)
     print("start training")
     model.fit_generator(train_gen,
                         steps_per_epoch=args.steps_per_epoch,
@@ -72,13 +70,8 @@ def main():
     print("store model")
     model.save(args.model)
 
-from keras.models import load_model
-import evaluation
-
 def evaluate_model():
-    model = load_model("model.h5", custom_objects={"precision": precision,
-                                                   "recall": recall,
-                                                   "f1_score": f1_score})
+    model = load_model("model.h5", custom_objects=evaluation.get_metrics())
     evaluation.evaluate_model(model, 25)
 
 if __name__ == "__main__":
