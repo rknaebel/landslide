@@ -2,16 +2,12 @@
 
 from skimage import io
 import numpy as np
-import random
 import h5py
 
-import math
+###############################################################################
+###############################################################################
 
-###############################################################################
-###############################################################################
 import logging
-
-###############################################################################
 
 # create logger
 logger = logging.getLogger('logger')
@@ -36,9 +32,9 @@ logger.addHandler(ch)
 # global params
 fld = 'data/'
 
-sateliteImages = ['20090526', '20110514', '20120524', '20130608',
-                  '20140517', '20150507', '20160526']
-sateliteImages = sateliteImages
+satellite_images = ['20090526', '20110514', '20120524', '20130608',
+                    '20140517', '20150507', '20160526']
+train_images = satellite_images[:-1]
 alt = 'DEM_altitude.tif'
 slp = 'DEM_slope.tif'
 
@@ -69,14 +65,14 @@ def extractPatch(data, date, x, y, size):
 
 
 def getLandslideDataFor(date):
-    altitute, slope = loadStaticData()
-    date_idx = sateliteImages.index(date)
+    altitude, slope = loadStaticData()
+    date_idx = train_images.index(date)
     prev_date_idx = date_idx - 1 if date_idx >= 1 else 0
     img, ndvi, mask = loadSateliteFile(date)
-    prev_img, prev_ndvi, _ = loadSateliteFile(sateliteImages[prev_date_idx])
+    prev_img, prev_ndvi, _ = loadSateliteFile(train_images[prev_date_idx])
     image = np.concatenate((img, np.expand_dims(ndvi, 2)), axis=2)
     prev_image = np.concatenate((prev_img, np.expand_dims(prev_ndvi, 2)), axis=2)
-    image = np.concatenate((image, prev_image, np.expand_dims(altitute, 2), np.expand_dims(slope, axis=2)), axis=2)
+    image = np.concatenate((image, prev_image, np.expand_dims(altitude, 2), np.expand_dims(slope, axis=2)), axis=2)
     return image, mask
 
 
@@ -93,7 +89,7 @@ def makeH5Dataset(path):
     f = h5py.File(path, "w")
 
     logger.info("load landslides and masks")
-    sat_images, masks = zip(*(getLandslideDataFor(d) for d in sateliteImages))
+    sat_images, masks = zip(*(getLandslideDataFor(d) for d in train_images))
     sat_images = np.stack(sat_images, axis=0)
 
     f.create_dataset("sat_images", data=sat_images)
@@ -151,10 +147,10 @@ def indexGenerator(data, validator, image_size, size, batch_size):
                 ctr = 0
 
 
-def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4, years=[0]):
+def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4):
     data = h5py.File(path, "r")
     # calculate the batch size per label
-    batch_size_pos = int(batch_size * p)
+    batch_size_pos = max(1, int(batch_size * p))
     batch_size_neg = batch_size - batch_size_pos
     image_size = data["sat_images"].shape[1:]
     # init index generators
