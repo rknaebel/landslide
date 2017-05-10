@@ -92,9 +92,11 @@ def main_train():
 def main_eval():
     print("load specified model")
     model = load_model(args.model, custom_objects=evaluation.get_metrics())
+    print("load evaluation image")
+    img = dataset.loadEvaluationImage()
     print("run evaluation on final year")
-    evaluation.evaluate_model(model, args.data, args.area_size)
-
+    y_pred = evaluation.evaluate_model(model, img, args.area_size)
+    evaluation.save_image_as(y_pred, "res/out.png")
 
 if __name__ == "__main__":
     if args.mode == "train":
