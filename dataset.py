@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from skimage import io
-import numpy as np
-import h5py
-
 ###############################################################################
 ###############################################################################
-
 import logging
+
+import h5py
+import numpy as np
+from skimage import io
 
 # create logger
 logger = logging.getLogger('logger')
@@ -57,6 +56,9 @@ def loadStaticData(normalize=True):
         slope /= 52.0
     return altitude, slope
 
+
+def loadEvaluationImage():
+    return loadSateliteFile(satellite_images[-1])
 
 def extractPatch(data, date, x, y, size):
     diff = size // 2
