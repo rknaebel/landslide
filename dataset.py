@@ -38,10 +38,10 @@ alt = 'DEM_altitude.tif'
 slp = 'DEM_slope.tif'
 
 
-def loadSateliteFile(date, normalize=True):
-    img = io.imread(fld + date + ".tif").astype(np.float32)
-    ndvi = io.imread(fld + date + "_NDVI.tif").astype(np.float32)
-    mask = io.imread(fld + date + "_mask_ls.tif").astype(np.float32)
+def loadSateliteFile(path, date, normalize=True):
+    img = io.imread(path + date + ".tif").astype(np.float32)
+    ndvi = io.imread(path + date + "_NDVI.tif").astype(np.float32)
+    mask = io.imread(path + date + "_mask_ls.tif").astype(np.float32)
     if normalize:
         img /= 20000.0
         ndvi /= 255.0  # TODO too high ?
@@ -57,8 +57,9 @@ def loadStaticData(normalize=True):
     return altitude, slope
 
 
-def loadEvaluationImage():
-    return loadSateliteFile(satellite_images[-1])
+def loadEvaluationImage(path):
+    return loadSateliteFile(path, satellite_images[-1])
+
 
 def extractPatch(data, date, x, y, size):
     diff = size // 2
@@ -70,7 +71,7 @@ def getLandslideDataFor(date):
     altitude, slope = loadStaticData()
     date_idx = train_images.index(date)
     prev_date_idx = date_idx - 1 if date_idx >= 1 else 0
-    img, ndvi, mask = loadSateliteFile(date)
+    img, ndvi, mask = loadSateliteFile(fld, date)
     prev_img, prev_ndvi, _ = loadSateliteFile(train_images[prev_date_idx])
     image = np.concatenate((img, np.expand_dims(ndvi, 2)), axis=2)
     prev_image = np.concatenate((prev_img, np.expand_dims(prev_ndvi, 2)), axis=2)
@@ -105,14 +106,12 @@ def makeH5Dataset(path):
         num_neg = int(mask.size - num_pos)
 
         pos = zip(*np.where(mask == 1))
-        # positives.append(np.array([(idx, x, y) for x, y in pos]))
         positive = np.empty((num_pos, 3), dtype=np.int32)
         for idx, (x, y) in enumerate(pos):
             positive[idx] = (year, x, y)
         positives.append(positive)
 
         neg = zip(*np.where(mask == 0))
-        # negatives.append(np.array([(year, x, y) for x, y in neg]))
         negative = np.empty((num_neg, 3), dtype=np.int32)
         for idx, (x, y) in enumerate(neg):
             negative[idx] = (year, x, y)
@@ -128,14 +127,56 @@ def makeH5Dataset(path):
     return True
 
 
-def indexGenerator(data, validator, image_size, size, batch_size):
-    """
+def make_small_h5dataset(path):
+    f = h5py.File(path, "w")
     
-    :param data: fh on h5py dataset
-    :param validator: filter applied to every position
-    :param batch_size: 
-    :return: 
-    """
+    logger.info("load landslides and masks")
+    masks = []
+    sat_images = []
+    for sat_image, ndvi, mask in (loadSateliteFile(fld, d) for d in train_images):
+        sat_images.append(np.concatenate((sat_image, np.expand_dims(ndvi, 2)), axis=2))
+        masks.append(mask)
+    sat_images = np.stack(sat_images, axis=0)
+    
+    f.create_dataset("sat_images", data=sat_images)
+    del sat_images
+    
+    altitude, slope = loadStaticData()
+    f.create_dataset("altitude", data=np.expand_dims(altitude, 2))
+    del altitude
+    f.create_dataset("slope", data=np.expand_dims(slope, 2))
+    del slope
+    
+    logger.info("calculate coordinates per mask")
+    positives, negatives = [], []
+    for year, mask in enumerate(masks):
+        logger.info("  process mask {}".format(year))
+        num_pos = int(mask.sum())
+        num_neg = int(mask.size - num_pos)
+        
+        pos = zip(*np.where(mask == 1))
+        positive = np.empty((num_pos, 3), dtype=np.int32)
+        for idx, (x, y) in enumerate(pos):
+            positive[idx] = (year, x, y)
+        positives.append(positive)
+        
+        neg = zip(*np.where(mask == 0))
+        negative = np.empty((num_neg, 3), dtype=np.int32)
+        for idx, (x, y) in enumerate(neg):
+            negative[idx] = (year, x, y)
+        negatives.append(negative)
+    
+    logger.info("concatenate coordinates")
+    positives = np.concatenate(positives)
+    negatives = np.concatenate(negatives)
+    
+    f.create_dataset("pos", data=positives)
+    f.create_dataset("neg", data=negatives)
+    
+    return True
+
+
+def indexGenerator(data, validator, image_size, size, batch_size):
     batch = np.empty((batch_size, 3), dtype=np.int32)
     ctr = 0
     while True:
@@ -173,9 +214,13 @@ def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4):
         yield X, y
 
 
-if __name__ == "__main__":
+def main():
     path = "tmp/data.h5"
     makeH5Dataset(path)
     gen = patchGeneratorFromH5(path, 25, 128, 0.4)
     for i, (X, y) in enumerate(gen):
         print(i, X.shape, y.shape)
+
+
+if __name__ == "__main__":
+    main()
