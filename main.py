@@ -11,7 +11,7 @@ import networks
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--mode", action="store", dest="mode",
-                    default="train")
+                    default="")
 
 parser.add_argument("--data", action="store", dest="data",
                     default="tmp/data.h5")
