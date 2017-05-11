@@ -63,6 +63,8 @@ def load_static_data(path, normalize=True):
 
 # TODO bullshit!
 def loadEvaluationImage(path):
+    alt, slp = load_static_data(path)
+    np.concatenate((sat_images[-1], sat_images[-2], np.stack((alt, slp), 2)), 2)
     return loadSateliteFile(path, satellite_images[-1])
 
 

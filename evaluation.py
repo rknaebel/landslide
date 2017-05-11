@@ -9,6 +9,7 @@ def padding(x, p):
     return np.lib.pad(x, ((0, 0), (p, p), (p, p), (0, 0)), 'constant', constant_values=(0,))
 
 
+# TODO make img 3d
 def generate_patches_full(img, batch_size, size):
     _, x, y, z = img.shape
     offset = size // 2
@@ -23,6 +24,7 @@ def generate_patches_full(img, batch_size, size):
             ctr = 0
 
 
+# TODO make img 3d
 def predict_image(model, img, size):
     offset = size // 2
     batch_size = 1024
