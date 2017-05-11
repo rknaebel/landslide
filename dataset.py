@@ -61,6 +61,7 @@ def loadEvaluationImage(path):
     return loadSateliteFile(path, satellite_images[-1])
 
 
+# TODO remove date from arguments
 def extractPatch(data, date, x, y, size):
     diff = size // 2
     patch = data[date, x - diff:x + diff + 1, y - diff:y + diff + 1, :]
@@ -214,6 +215,52 @@ def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4):
         yield X, y
 
 
+# TODO use data in-memory instead of path?
+def patch_generator_from_small_h5(path, size=25, batch_size=64, p=0.4):
+    data = h5py.File(path, "r")
+    # calculate the batch size per label
+    batch_size_pos = max(1, int(batch_size * p))
+    batch_size_neg = batch_size - batch_size_pos
+    sat_images = np.array(data["sat_images"])
+    image_size = sat_images.shape[1:]
+    # init index generators
+    idx_pos = indexGenerator(data["pos"], patchValidator, image_size, size, batch_size_pos)
+    idx_neg = indexGenerator(data["neg"], patchValidator, image_size, size, batch_size_neg)
+    
+    altitude = np.expand_dims(data["altitude"], 0)
+    slope = np.expand_dims(data["slope"], 0)
+    
+    for sample_idx_pos, sample_idx_neg in zip(idx_pos, idx_neg):
+        X = []
+        for year, x, y in sample_idx_pos:
+            patch_1 = extractPatch(sat_images, year, x, y, size)
+            if year == 0:
+                patch_2 = patch_1
+            else:
+                patch_2 = extractPatch(sat_images, year - 1, x, y, size)
+            patch_atl = extractPatch(altitude, 0, x, y, size)
+            patch_slp = extractPatch(slope, 0, x, y, size)
+            X.append(np.concatenate((patch_1, patch_2, patch_atl, patch_slp), axis=2))
+        
+        for year, x, y in sample_idx_neg:
+            patch_1 = extractPatch(sat_images, year, x, y, size)
+            if year == 0:
+                patch_2 = patch_1
+            else:
+                patch_2 = extractPatch(sat_images, year - 1, x, y, size)
+            patch_atl = extractPatch(altitude, 0, x, y, size)
+            patch_slp = extractPatch(slope, 0, x, y, size)
+            X.append(np.concatenate((patch_1, patch_2, patch_atl, patch_slp), axis=2))
+        
+        X = np.stack(X)
+        #
+        y = np.concatenate((
+            np.ones(batch_size_pos, dtype=np.float32),
+            np.zeros(batch_size_neg, dtype=np.float32)
+        ))
+        yield X, y
+
+
 def main():
     path = "tmp/data.h5"
     makeH5Dataset(path)
@@ -223,4 +270,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    pass
