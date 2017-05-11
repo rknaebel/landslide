@@ -44,7 +44,7 @@ def loadSateliteFile(path, date, normalize=True):
     mask = io.imread(path + date + "_mask_ls.tif").astype(np.float32)
     if normalize:
         img /= 20000.0
-        ndvi /= 255.0  # TODO too high ?
+        ndvi /= 255.0  # TODO ask paul: too high ?
     return img, ndvi, mask
 
 
