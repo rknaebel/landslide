@@ -52,9 +52,9 @@ def load_satellite_mask(path, date):
     return io.imread(path + date + "_mask_ls.tif").astype(np.bool)
 
 
-def loadStaticData(normalize=True):
-    altitude = io.imread(fld + alt).astype(np.float32)
-    slope = io.imread(fld + slp).astype(np.float32)
+def load_static_data(path, normalize=True):
+    altitude = io.imread(path + alt).astype(np.float32)
+    slope = io.imread(path + slp).astype(np.float32)
     if normalize:
         altitude /= 2555.0
         slope /= 52.0
@@ -73,7 +73,7 @@ def extract_patch(data, x, y, size):
 
 
 def getLandslideDataFor(date):
-    altitude, slope = loadStaticData()
+    altitude, slope = load_static_data(fld)
     date_idx = train_images.index(date)
     prev_date_idx = date_idx - 1 if date_idx >= 1 else 0
     img, ndvi, mask = loadSateliteFile(fld, date)
@@ -156,6 +156,28 @@ def compute_coordinates(masks):
     negatives = np.concatenate(negatives)
     
     return positives, negatives
+
+
+def make_small_dataset(fld):
+    """Computes full dataset"""
+    logger.info("load landslides and masks")
+    masks = []
+    sat_images = []
+    for sat_image, ndvi, mask in (loadSateliteFile(fld, d) for d in train_images):
+        sat_images.append(np.concatenate((sat_image, np.expand_dims(ndvi, 2)), axis=2))
+        masks.append(mask)
+    sat_images = np.stack(sat_images, axis=0)
+    
+    altitude, slope = load_static_data(fld)
+    
+    logger.info("calculate coordinates per mask")
+    positives, negatives = compute_coordinates(masks)
+    
+    logger.info("concatenate coordinates")
+    positives = np.concatenate(positives)
+    negatives = np.concatenate(negatives)
+    
+    return sat_images, positives, negatives, altitude, slope
 
 
 def make_small_h5dataset(path):
