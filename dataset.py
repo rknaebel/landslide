@@ -61,6 +61,7 @@ def load_static_data(path, normalize=True):
     return altitude, slope
 
 
+# TODO bullshit!
 def loadEvaluationImage(path):
     return loadSateliteFile(path, satellite_images[-1])
 
@@ -93,6 +94,7 @@ def patchValidator(shape, pos, size):
     return True
 
 
+# TODO delete
 def makeH5Dataset(path):
     f = h5py.File(path, "w")
 
@@ -172,10 +174,6 @@ def make_small_dataset(fld):
     
     logger.info("calculate coordinates per mask")
     positives, negatives = compute_coordinates(masks)
-    
-    logger.info("concatenate coordinates")
-    positives = np.concatenate(positives)
-    negatives = np.concatenate(negatives)
     
     return sat_images, positives, negatives, altitude, slope
 
