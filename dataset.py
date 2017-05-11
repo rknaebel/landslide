@@ -132,23 +132,19 @@ def makeH5Dataset(path):
     return True
 
 
-def make_small_h5dataset(path):
-    f = h5py.File(path, "w")
-
-    logger.info("load masks into memory")
-    masks = list(load_satellite_mask(fld, d) for d in train_images)
-    
-    logger.info("calculate coordinates per mask")
+def compute_coordinates(masks):
+    """Expects a list of image masks and computes two sets of coordinates, one for positive events and one for
+    negatives """
     positives, negatives = [], []
     for year, mask in enumerate(masks):
         logger.info("  process mask {}".format(year))
-
+        
         logger.info("- pos")
         x_pos, y_pos = np.where(mask == 1)
         d_pos = np.zeros_like(x_pos) + year
         positive = np.stack((d_pos, x_pos, y_pos)).T
         positives.append(positive)
-
+        
         logger.info("- neg")
         x_neg, y_neg = np.where(mask == 0)
         d_neg = np.zeros_like(x_neg) + year
@@ -158,6 +154,18 @@ def make_small_h5dataset(path):
     logger.info("concatenate coordinates")
     positives = np.concatenate(positives)
     negatives = np.concatenate(negatives)
+    
+    return positives, negatives
+
+
+def make_small_h5dataset(path):
+    f = h5py.File(path, "w")
+
+    logger.info("load masks into memory")
+    masks = list(load_satellite_mask(fld, d) for d in train_images)
+    
+    logger.info("calculate coordinates per mask")
+    positives, negatives = compute_coordinates(masks)
     
     f.create_dataset("pos", data=positives)
     f.create_dataset("neg", data=negatives)
