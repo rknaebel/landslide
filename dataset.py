@@ -165,7 +165,7 @@ def make_small_h5dataset(path):
     return True
 
 
-def indexGenerator(data, validator, image_size, size, batch_size):
+def index_generator(data, validator, image_size, size, batch_size):
     batch = np.empty((batch_size, 3), dtype=np.int32)
     ctr = 0
     while True:
@@ -186,8 +186,8 @@ def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4):
     batch_size_neg = batch_size - batch_size_pos
     image_size = data["sat_images"].shape[1:]
     # init index generators
-    idx_pos = indexGenerator(data["pos"], patchValidator, image_size, size, batch_size_pos)
-    idx_neg = indexGenerator(data["neg"], patchValidator, image_size, size, batch_size_neg)
+    idx_pos = index_generator(data["pos"], patchValidator, image_size, size, batch_size_pos)
+    idx_neg = index_generator(data["neg"], patchValidator, image_size, size, batch_size_neg)
 
     for sample_idx_pos, sample_idx_neg in zip(idx_pos, idx_neg):
         #
@@ -203,42 +203,35 @@ def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4):
         yield X, y
 
 
-# TODO use data in-memory instead of path?
-# TODO story only positions into h5 file for efficiency
-def patch_generator_from_small_h5(path, size=25, batch_size=64, p=0.4):
-    data = h5py.File(path, "r")
+def patch_generator(images, pos, neg, altitude, slope, size=25, batch_size=64, p=0.4):
     # calculate the batch size per label
     batch_size_pos = max(1, int(batch_size * p))
     batch_size_neg = batch_size - batch_size_pos
-    sat_images = data["sat_images"].value
-    image_size = sat_images.shape[1:]
+    image_size = images.shape[1:]
     # init index generators
-    idx_pos = indexGenerator(data["pos"], patchValidator, image_size, size, batch_size_pos)
-    idx_neg = indexGenerator(data["neg"], patchValidator, image_size, size, batch_size_neg)
-
-    altitude = data["altitude"].value
-    slope = data["slope"].value
+    idx_pos = index_generator(pos, patchValidator, image_size, size, batch_size_pos)
+    idx_neg = index_generator(neg, patchValidator, image_size, size, batch_size_neg)
     
     for sample_idx_pos, sample_idx_neg in zip(idx_pos, idx_neg):
         X = []
         for year, x, y in sample_idx_pos:
-            patch_1 = extract_patch(sat_images[year], x, y, size)
+            patch_1 = extract_patch(images[year], x, y, size)
             if year == 0:
                 patch_2 = patch_1
             else:
-                patch_2 = extract_patch(sat_images[year - 1], x, y, size)
+                patch_2 = extract_patch(images[year - 1], x, y, size)
             patch_atl = extract_patch(altitude, x, y, size)
             patch_slp = extract_patch(slope, x, y, size)
             X.append(np.concatenate((patch_1, patch_2, patch_atl, patch_slp), axis=2))
         
         for year, x, y in sample_idx_neg:
-            patch_1 = extract_patch(sat_images[year], x, y, size)
+            patch_1 = extract_patch(images[year], x, y, size)
             if year == 0:
                 patch_2 = patch_1
             else:
-                patch_2 = extract_patch(sat_images[year - 1], x, y, size)
-            patch_atl = extract_patch(altitude[0], x, y, size)
-            patch_slp = extract_patch(slope[0], x, y, size)
+                patch_2 = extract_patch(images[year - 1], x, y, size)
+            patch_atl = extract_patch(altitude, x, y, size)
+            patch_slp = extract_patch(slope, x, y, size)
             X.append(np.concatenate((patch_1, patch_2, patch_atl, patch_slp), axis=2))
         
         X = np.stack(X)
@@ -250,10 +243,29 @@ def patch_generator_from_small_h5(path, size=25, batch_size=64, p=0.4):
         yield X, y
 
 
+# TODO use data in-memory instead of path?
+# TODO story only positions into h5 file for efficiency
+def patch_generator_from_small_h5(path, size=25, batch_size=64, p=0.4):
+    data = h5py.File(path, "r")
+    sat_images = data["sat_images"].value
+    pos = data["pos"].value
+    neg = data["neg"].value
+    altitude = data["altitude"].value
+    slope = data["slope"].value
+
+    return patch_generator(sat_images, pos, neg, altitude, slope, size, batch_size, p)
+
+
 def main():
     path = "tmp/data.h5"
     makeH5Dataset(path)
     gen = patchGeneratorFromH5(path, 25, 128, 0.4)
+    for i, (X, y) in enumerate(gen):
+        print(i, X.shape, y.shape)
+
+
+def test():
+    gen = patch_generator_from_small_h5("/tmp/data_small.h5", 25, 256, 0.4)
     for i, (X, y) in enumerate(gen):
         print(i, X.shape, y.shape)
 
