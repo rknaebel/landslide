@@ -61,10 +61,10 @@ def loadEvaluationImage(path):
     return loadSateliteFile(path, satellite_images[-1])
 
 
-# TODO remove date from arguments
-def extractPatch(data, date, x, y, size):
+def extract_patch(data, x, y, size):
+    """Expects a 3 dimensional image (height,width,channels)"""
     diff = size // 2
-    patch = data[date, x - diff:x + diff + 1, y - diff:y + diff + 1, :]
+    patch = data[x - diff:x + diff + 1, y - diff:y + diff + 1, :]
     return patch
 
 
@@ -204,8 +204,8 @@ def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4):
     for sample_idx_pos, sample_idx_neg in zip(idx_pos, idx_neg):
         #
         X = np.stack([
-            *map(lambda x: extractPatch(data["sat_images"], x[0], x[1], x[2], size), sample_idx_pos),
-            *map(lambda x: extractPatch(data["sat_images"], x[0], x[1], x[2], size), sample_idx_neg)
+            *map(lambda x: extract_patch(data["sat_images"][x[0]], x[1], x[2], size), sample_idx_pos),
+            *map(lambda x: extract_patch(data["sat_images"][x[0]], x[1], x[2], size), sample_idx_neg)
         ])
         #
         y = np.concatenate((
@@ -233,23 +233,23 @@ def patch_generator_from_small_h5(path, size=25, batch_size=64, p=0.4):
     for sample_idx_pos, sample_idx_neg in zip(idx_pos, idx_neg):
         X = []
         for year, x, y in sample_idx_pos:
-            patch_1 = extractPatch(sat_images, year, x, y, size)
+            patch_1 = extract_patch(sat_images[year], x, y, size)
             if year == 0:
                 patch_2 = patch_1
             else:
-                patch_2 = extractPatch(sat_images, year - 1, x, y, size)
-            patch_atl = extractPatch(altitude, 0, x, y, size)
-            patch_slp = extractPatch(slope, 0, x, y, size)
+                patch_2 = extract_patch(sat_images[year - 1], x, y, size)
+            patch_atl = extract_patch(altitude[0], x, y, size)
+            patch_slp = extract_patch(slope[0], x, y, size)
             X.append(np.concatenate((patch_1, patch_2, patch_atl, patch_slp), axis=2))
         
         for year, x, y in sample_idx_neg:
-            patch_1 = extractPatch(sat_images, year, x, y, size)
+            patch_1 = extract_patch(sat_images[year], x, y, size)
             if year == 0:
                 patch_2 = patch_1
             else:
-                patch_2 = extractPatch(sat_images, year - 1, x, y, size)
-            patch_atl = extractPatch(altitude, 0, x, y, size)
-            patch_slp = extractPatch(slope, 0, x, y, size)
+                patch_2 = extract_patch(sat_images[year - 1], x, y, size)
+            patch_atl = extract_patch(altitude[0], x, y, size)
+            patch_slp = extract_patch(slope[0], x, y, size)
             X.append(np.concatenate((patch_1, patch_2, patch_atl, patch_slp), axis=2))
         
         X = np.stack(X)

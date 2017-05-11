@@ -16,7 +16,7 @@ def generate_patches_full(img, batch_size, size):
     batch = np.empty((batch_size, size, size, z), dtype=np.float32)
     
     for i, j in ((i, j) for i in range(x - 2 * offset) for j in range(y - 2 * offset)):
-        batch[ctr] = dataset.extractPatch(img, 0, i + offset, j + offset, size)
+        batch[ctr] = dataset.extract_patch(img[0], i + offset, j + offset, size)
         ctr += 1
         if ctr == batch_size:
             yield batch
