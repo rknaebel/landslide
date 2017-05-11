@@ -48,6 +48,10 @@ def loadSateliteFile(path, date, normalize=True):
     return img, ndvi, mask
 
 
+def load_satellite_mask(path, date):
+    return io.imread(path + date + "_mask_ls.tif").astype(np.bool)
+
+
 def loadStaticData(normalize=True):
     altitude = io.imread(fld + alt).astype(np.float32)
     slope = io.imread(fld + slp).astype(np.float32)
@@ -130,41 +134,25 @@ def makeH5Dataset(path):
 
 def make_small_h5dataset(path):
     f = h5py.File(path, "w")
-    
-    logger.info("load landslides and masks")
-    masks = []
-    sat_images = []
-    for sat_image, ndvi, mask in (loadSateliteFile(fld, d) for d in train_images):
-        sat_images.append(np.concatenate((sat_image, np.expand_dims(ndvi, 2)), axis=2))
-        masks.append(mask)
-    sat_images = np.stack(sat_images, axis=0)
-    
-    f.create_dataset("sat_images", data=sat_images)
-    del sat_images
-    
-    altitude, slope = loadStaticData()
-    f.create_dataset("altitude", data=np.expand_dims(altitude, 2))
-    del altitude
-    f.create_dataset("slope", data=np.expand_dims(slope, 2))
-    del slope
+
+    logger.info("load masks into memory")
+    masks = list(load_satellite_mask(fld, d) for d in train_images)
     
     logger.info("calculate coordinates per mask")
     positives, negatives = [], []
     for year, mask in enumerate(masks):
         logger.info("  process mask {}".format(year))
-        num_pos = int(mask.sum())
-        num_neg = int(mask.size - num_pos)
-        
-        pos = zip(*np.where(mask == 1))
-        positive = np.empty((num_pos, 3), dtype=np.int32)
-        for idx, (x, y) in enumerate(pos):
-            positive[idx] = (year, x, y)
+
+        logger.info("- pos")
+        x_pos, y_pos = np.where(mask == 1)
+        d_pos = np.zeros_like(x_pos) + year
+        positive = np.stack((d_pos, x_pos, y_pos)).T
         positives.append(positive)
-        
-        neg = zip(*np.where(mask == 0))
-        negative = np.empty((num_neg, 3), dtype=np.int32)
-        for idx, (x, y) in enumerate(neg):
-            negative[idx] = (year, x, y)
+
+        logger.info("- neg")
+        x_neg, y_neg = np.where(mask == 0)
+        d_neg = np.zeros_like(x_neg) + year
+        negative = np.stack((d_neg, x_neg, y_neg)).T
         negatives.append(negative)
     
     logger.info("concatenate coordinates")
@@ -216,19 +204,20 @@ def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4):
 
 
 # TODO use data in-memory instead of path?
+# TODO story only positions into h5 file for efficiency
 def patch_generator_from_small_h5(path, size=25, batch_size=64, p=0.4):
     data = h5py.File(path, "r")
     # calculate the batch size per label
     batch_size_pos = max(1, int(batch_size * p))
     batch_size_neg = batch_size - batch_size_pos
-    sat_images = np.array(data["sat_images"])
+    sat_images = data["sat_images"].value
     image_size = sat_images.shape[1:]
     # init index generators
     idx_pos = indexGenerator(data["pos"], patchValidator, image_size, size, batch_size_pos)
     idx_neg = indexGenerator(data["neg"], patchValidator, image_size, size, batch_size_neg)
-    
-    altitude = np.expand_dims(data["altitude"], 0)
-    slope = np.expand_dims(data["slope"], 0)
+
+    altitude = data["altitude"].value
+    slope = data["slope"].value
     
     for sample_idx_pos, sample_idx_neg in zip(idx_pos, idx_neg):
         X = []
@@ -238,8 +227,8 @@ def patch_generator_from_small_h5(path, size=25, batch_size=64, p=0.4):
                 patch_2 = patch_1
             else:
                 patch_2 = extract_patch(sat_images[year - 1], x, y, size)
-            patch_atl = extract_patch(altitude[0], x, y, size)
-            patch_slp = extract_patch(slope[0], x, y, size)
+            patch_atl = extract_patch(altitude, x, y, size)
+            patch_slp = extract_patch(slope, x, y, size)
             X.append(np.concatenate((patch_1, patch_2, patch_atl, patch_slp), axis=2))
         
         for year, x, y in sample_idx_neg:
