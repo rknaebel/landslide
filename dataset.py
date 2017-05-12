@@ -4,7 +4,6 @@
 ###############################################################################
 import logging
 
-import h5py
 import numpy as np
 from skimage import io
 
@@ -38,14 +37,13 @@ alt = 'DEM_altitude.tif'
 slp = 'DEM_slope.tif'
 
 
-def loadSateliteFile(path, date, normalize=True):
+def load_satellite_img(path, date, normalize=True):
     img = io.imread(path + date + ".tif").astype(np.float32)
     ndvi = io.imread(path + date + "_NDVI.tif").astype(np.float32)
-    mask = io.imread(path + date + "_mask_ls.tif").astype(np.bool)
     if normalize:
         img /= 20000.0
         ndvi /= 255.0  # TODO ask paul: too high ?
-    return img, ndvi, mask
+    return img, ndvi
 
 
 def load_satellite_mask(path, date):
@@ -62,10 +60,11 @@ def load_static_data(path, normalize=True):
 
 
 # TODO bullshit!
-def loadEvaluationImage(path):
+def load_image_eval(path):
     alt, slp = load_static_data(path)
-    np.concatenate((sat_images[-1], sat_images[-2], np.stack((alt, slp), 2)), 2)
-    return loadSateliteFile(path, satellite_images[-1])
+
+    np.concatenate((sat_images[-1], sat_images[-2], alt, slp), 2)
+    return load_satellite_img(path, satellite_images[-1])
 
 
 def extract_patch(data, x, y, size):
@@ -79,8 +78,9 @@ def getLandslideDataFor(date):
     altitude, slope = load_static_data(fld)
     date_idx = train_images.index(date)
     prev_date_idx = date_idx - 1 if date_idx >= 1 else 0
-    img, ndvi, mask = loadSateliteFile(fld, date)
-    prev_img, prev_ndvi, _ = loadSateliteFile(train_images[prev_date_idx])
+    img, ndvi = load_satellite_img(fld, date)
+    mask = load_satellite_mask(fld, date)
+    prev_img, prev_ndvi = load_satellite_img(fld, train_images[prev_date_idx])
     image = np.concatenate((img, np.expand_dims(ndvi, 2)), axis=2)
     prev_image = np.concatenate((prev_img, np.expand_dims(prev_ndvi, 2)), axis=2)
     image = np.concatenate((image, prev_image, np.expand_dims(altitude, 2), np.expand_dims(slope, axis=2)), axis=2)
@@ -93,26 +93,6 @@ def patch_validator(shape, pos, size):
             (shape[0] - pos[0] < size) or
             (shape[1] - pos[1] < size)):
         return False
-    return True
-
-
-# TODO delete
-def makeH5Dataset(path):
-    f = h5py.File(path, "w")
-
-    logger.info("load landslides and masks")
-    sat_images, masks = zip(*(getLandslideDataFor(d) for d in train_images))
-    sat_images = np.stack(sat_images, axis=0)
-
-    f.create_dataset("sat_images", data=sat_images)
-    del sat_images
-
-    logger.info("calculate coordinates per mask")
-    positives, negatives = compute_coordinates(masks)
-
-    f.create_dataset("pos", data=positives)
-    f.create_dataset("neg", data=negatives)
-
     return True
 
 
@@ -143,34 +123,18 @@ def compute_coordinates(masks):
 def make_small_dataset(fld):
     """Computes full dataset"""
     logger.info("load landslides and masks")
-    masks = []
     sat_images = []
-    for sat_image, ndvi, mask in (loadSateliteFile(fld, d) for d in train_images):
+    for sat_image, ndvi in (load_satellite_img(fld, d) for d in train_images):
         sat_images.append(np.concatenate((sat_image, np.expand_dims(ndvi, 2)), axis=2))
-        masks.append(mask)
     sat_images = np.stack(sat_images, axis=0)
     
+    logger.info("calculate coordinates per mask")
+    masks = list(load_satellite_mask(fld, d) for d in train_images)
+    positives, negatives = compute_coordinates(masks)
+
     altitude, slope = load_static_data(fld)
     
-    logger.info("calculate coordinates per mask")
-    positives, negatives = compute_coordinates(masks)
-    
     return sat_images, positives, negatives, altitude, slope
-
-
-def make_small_h5dataset(path):
-    f = h5py.File(path, "w")
-
-    logger.info("load masks into memory")
-    masks = list(load_satellite_mask(fld, d) for d in train_images)
-    
-    logger.info("calculate coordinates per mask")
-    positives, negatives = compute_coordinates(masks)
-    
-    f.create_dataset("pos", data=positives)
-    f.create_dataset("neg", data=negatives)
-    
-    return True
 
 
 def index_generator(data, validator, image_size, size, batch_size):
@@ -227,26 +191,8 @@ def patch_generator(images, pos, neg, altitude, slope, size=25, batch_size=64, p
         yield X, y
 
 
-# TODO store only positions into h5 file for efficiency
-def patch_generator_from_small_h5(path, size=25, batch_size=64, p=0.4):
-    data = h5py.File(path, "r")
-    sat_images = data["sat_images"].value
-    pos = data["pos"].value
-    neg = data["neg"].value
-    altitude = data["altitude"].value
-    slope = data["slope"].value
-
-    return patch_generator(sat_images, pos, neg, altitude, slope, size, batch_size, p)
-
-
 def main():
     pass
-
-
-def test():
-    gen = patch_generator_from_small_h5("/tmp/data_small.h5", 25, 256, 0.4)
-    for i, (X, y) in enumerate(gen):
-        print(i, X.shape, y.shape)
 
 
 def test2():
