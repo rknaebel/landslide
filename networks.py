@@ -43,8 +43,7 @@ def get_model_1(area):
 
 def get_model_2(area):
     model = Sequential()
-    model.add(Activation('linear', input_shape=(area, area, 14)))
-    model.add(Conv2D(32, (5, 1), padding="same"))
+    model.add(Conv2D(32, (5, 1), padding="same", input_shape=(area, area, 14)))
     model.add(Activation('relu'))
     model.add(Conv2D(32, (1, 5), padding="same"))
     model.add(Maxout())
