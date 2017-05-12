@@ -53,8 +53,8 @@ def load_satellite_mask(path, date):
 
 
 def load_static_data(path, normalize=True):
-    altitude = io.imread(path + alt).astype(np.float32)
-    slope = io.imread(path + slp).astype(np.float32)
+    altitude = io.imread(path + alt)[..., None].astype(np.float32)
+    slope = io.imread(path + slp)[..., None].astype(np.float32)
     if normalize:
         altitude /= 2555.0
         slope /= 52.0
@@ -296,6 +296,13 @@ def main():
 
 def test():
     gen = patch_generator_from_small_h5("/tmp/data_small.h5", 25, 256, 0.4)
+    for i, (X, y) in enumerate(gen):
+        print(i, X.shape, y.shape)
+
+
+def test2():
+    sat_images, pos, neg, alt, slp = make_small_dataset("data/")
+    gen = patch_generator(sat_images, pos, neg, alt, slp, 25, 512, 0.4)
     for i, (X, y) in enumerate(gen):
         print(i, X.shape, y.shape)
 
