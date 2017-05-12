@@ -41,7 +41,7 @@ slp = 'DEM_slope.tif'
 def loadSateliteFile(path, date, normalize=True):
     img = io.imread(path + date + ".tif").astype(np.float32)
     ndvi = io.imread(path + date + "_NDVI.tif").astype(np.float32)
-    mask = io.imread(path + date + "_mask_ls.tif").astype(np.float32)
+    mask = io.imread(path + date + "_mask_ls.tif").astype(np.bool)
     if normalize:
         img /= 20000.0
         ndvi /= 255.0  # TODO ask paul: too high ?
@@ -53,8 +53,8 @@ def load_satellite_mask(path, date):
 
 
 def load_static_data(path, normalize=True):
-    altitude = io.imread(path + alt)[..., None].astype(np.float32)
-    slope = io.imread(path + slp)[..., None].astype(np.float32)
+    altitude = io.imread(path + alt).astype(np.float32)[..., None]
+    slope = io.imread(path + slp).astype(np.float32)[..., None]
     if normalize:
         altitude /= 2555.0
         slope /= 52.0
@@ -87,7 +87,7 @@ def getLandslideDataFor(date):
     return image, mask
 
 
-def patchValidator(shape, pos, size):
+def patch_validator(shape, pos, size):
     if ((pos[0] < size) or
             (pos[1] < size) or
             (shape[0] - pos[0] < size) or
@@ -108,27 +108,7 @@ def makeH5Dataset(path):
     del sat_images
 
     logger.info("calculate coordinates per mask")
-    positives, negatives = [], []
-    for year, mask in enumerate(masks):
-        logger.info("  process mask {}".format(year))
-        num_pos = int(mask.sum())
-        num_neg = int(mask.size - num_pos)
-
-        pos = zip(*np.where(mask == 1))
-        positive = np.empty((num_pos, 3), dtype=np.int32)
-        for idx, (x, y) in enumerate(pos):
-            positive[idx] = (year, x, y)
-        positives.append(positive)
-
-        neg = zip(*np.where(mask == 0))
-        negative = np.empty((num_neg, 3), dtype=np.int32)
-        for idx, (x, y) in enumerate(neg):
-            negative[idx] = (year, x, y)
-        negatives.append(negative)
-
-    logger.info("concatenate coordinates")
-    positives = np.concatenate(positives)
-    negatives = np.concatenate(negatives)
+    positives, negatives = compute_coordinates(masks)
 
     f.create_dataset("pos", data=positives)
     f.create_dataset("neg", data=negatives)
@@ -142,19 +122,17 @@ def compute_coordinates(masks):
     positives, negatives = [], []
     for year, mask in enumerate(masks):
         logger.info("  process mask {}".format(year))
-        
-        logger.info("- pos")
+        # positive samples
         x_pos, y_pos = np.where(mask == 1)
         d_pos = np.zeros_like(x_pos) + year
         positive = np.stack((d_pos, x_pos, y_pos)).T
         positives.append(positive)
-        
-        logger.info("- neg")
+        # negative samples
         x_neg, y_neg = np.where(mask == 0)
         d_neg = np.zeros_like(x_neg) + year
         negative = np.stack((d_neg, x_neg, y_neg)).T
         negatives.append(negative)
-    
+    # put everything together
     logger.info("concatenate coordinates")
     positives = np.concatenate(positives)
     negatives = np.concatenate(negatives)
@@ -209,38 +187,14 @@ def index_generator(data, validator, image_size, size, batch_size):
                 ctr = 0
 
 
-def patchGeneratorFromH5(path, size=25, batch_size=64, p=0.4):
-    data = h5py.File(path, "r")
-    # calculate the batch size per label
-    batch_size_pos = max(1, int(batch_size * p))
-    batch_size_neg = batch_size - batch_size_pos
-    image_size = data["sat_images"].shape[1:]
-    # init index generators
-    idx_pos = index_generator(data["pos"], patchValidator, image_size, size, batch_size_pos)
-    idx_neg = index_generator(data["neg"], patchValidator, image_size, size, batch_size_neg)
-
-    for sample_idx_pos, sample_idx_neg in zip(idx_pos, idx_neg):
-        #
-        X = np.stack([
-            *map(lambda x: extract_patch(data["sat_images"][x[0]], x[1], x[2], size), sample_idx_pos),
-            *map(lambda x: extract_patch(data["sat_images"][x[0]], x[1], x[2], size), sample_idx_neg)
-        ])
-        #
-        y = np.concatenate((
-            np.ones(batch_size_pos, dtype=np.float32),
-            np.zeros(batch_size_neg, dtype=np.float32)
-        ))
-        yield X, y
-
-
 def patch_generator(images, pos, neg, altitude, slope, size=25, batch_size=64, p=0.4):
     # calculate the batch size per label
     batch_size_pos = max(1, int(batch_size * p))
     batch_size_neg = batch_size - batch_size_pos
     image_size = images.shape[1:]
     # init index generators
-    idx_pos = index_generator(pos, patchValidator, image_size, size, batch_size_pos)
-    idx_neg = index_generator(neg, patchValidator, image_size, size, batch_size_neg)
+    idx_pos = index_generator(pos, patch_validator, image_size, size, batch_size_pos)
+    idx_neg = index_generator(neg, patch_validator, image_size, size, batch_size_neg)
     
     for sample_idx_pos, sample_idx_neg in zip(idx_pos, idx_neg):
         X = []
@@ -273,8 +227,7 @@ def patch_generator(images, pos, neg, altitude, slope, size=25, batch_size=64, p
         yield X, y
 
 
-# TODO use data in-memory instead of path?
-# TODO story only positions into h5 file for efficiency
+# TODO store only positions into h5 file for efficiency
 def patch_generator_from_small_h5(path, size=25, batch_size=64, p=0.4):
     data = h5py.File(path, "r")
     sat_images = data["sat_images"].value
@@ -287,11 +240,7 @@ def patch_generator_from_small_h5(path, size=25, batch_size=64, p=0.4):
 
 
 def main():
-    path = "tmp/data.h5"
-    makeH5Dataset(path)
-    gen = patchGeneratorFromH5(path, 25, 128, 0.4)
-    for i, (X, y) in enumerate(gen):
-        print(i, X.shape, y.shape)
+    pass
 
 
 def test():
