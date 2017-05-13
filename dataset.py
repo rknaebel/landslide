@@ -46,11 +46,11 @@ def load_satellite_img(path, date, normalize=True):
     return img, ndvi
 
 
-def load_satellite_mask(path, date):
+def load_satellite_mask(path: str, date: str):
     return io.imread(path + date + "_mask_ls.tif").astype(np.bool)
 
 
-def load_static_data(path, normalize=True):
+def load_static_data(path: str, normalize: bool = True):
     altitude = io.imread(path + alt).astype(np.float32)[..., None]
     slope = io.imread(path + slp).astype(np.float32)[..., None]
     if normalize:
@@ -59,12 +59,11 @@ def load_static_data(path, normalize=True):
     return altitude, slope
 
 
-# TODO bullshit!
 def load_image_eval(path):
-    alt, slp = load_static_data(path)
-
-    np.concatenate((sat_images[-1], sat_images[-2], alt, slp), 2)
-    return load_satellite_img(path, satellite_images[-1])
+    altitude, slope = load_static_data(path)
+    img1 = get_single_satellite_features(path, satellite_images[-1])
+    img2 = get_single_satellite_features(path, satellite_images[-2])
+    return np.concatenate((img1, img2, altitude, slope), 2)
 
 
 def get_single_satellite_features(path, date):

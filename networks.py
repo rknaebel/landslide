@@ -1,10 +1,10 @@
 from keras.layers import Activation, AvgPool2D, Conv2D, Dense, Dropout, Flatten, MaxPool2D
-from keras.models import Sequential
+from keras.models import Model, Sequential
 
 from utils import Maxout
 
 
-def get_convnet_landslide_all(areaSize=8):
+def get_convnet_landslide_all(areaSize: int = 8) -> Model:
     input_shape = (areaSize, areaSize, 14)
     model = Sequential()
     model.add(Conv2D(8, 3, 3, input_shape=input_shape, init='normal'))
