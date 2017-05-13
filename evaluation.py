@@ -6,29 +6,28 @@ import dataset
 
 
 def padding(x, p):
-    return np.lib.pad(x, ((0, 0), (p, p), (p, p), (0, 0)), 'constant', constant_values=(0,))
+    return np.lib.pad(x, ((p, p), (p, p), (0, 0)), 'constant', constant_values=(0,))
 
 
-# TODO make img 3d
 def generate_patches_full(img, batch_size, size):
-    _, x, y, z = img.shape
+    x, y, z = img.shape
     offset = size // 2
     ctr = 0
     batch = np.empty((batch_size, size, size, z), dtype=np.float32)
     
     for i, j in ((i, j) for i in range(x - 2 * offset) for j in range(y - 2 * offset)):
-        batch[ctr] = dataset.extract_patch(img[0], i + offset, j + offset, size)
+        batch[ctr] = dataset.extract_patch(img, i + offset, j + offset, size)
         ctr += 1
         if ctr == batch_size:
             yield batch
             ctr = 0
 
 
-# TODO make img 3d
 def predict_image(model, img, size):
+    assert img.shape == 3
     offset = size // 2
     batch_size = 1024
-    _, x, y, z = img.shape
+    x, y, z = img.shape
     
     img = padding(img, offset)
     
@@ -117,24 +116,22 @@ def recall(y_true, y_pred):
 
 
 def f1_score(y_true, y_pred):
-    p = precision(y_true, y_pred)
-    r = recall(y_true, y_pred)
-
-    beta = 1  # fmeasure
-    bb = beta ** 2
-
-    fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
-
-    return fbeta_score
+    return f_score(1)(y_true, y_pred)
 
 
 def f05_score(y_true, y_pred):
-    p = precision(y_true, y_pred)
-    r = recall(y_true, y_pred)
+    return f_score(0.5)(y_true, y_pred)
+
+
+def f_score(beta):
+    def _f(y_true, y_pred):
+        p = precision(y_true, y_pred)
+        r = recall(y_true, y_pred)
+        
+        bb = beta ** 2
+        
+        fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
+        
+        return fbeta_score
     
-    beta = 0.5  # fmeasure
-    bb = beta ** 2
-    
-    fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
-    
-    return fbeta_score
+    return _f
