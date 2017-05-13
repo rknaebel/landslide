@@ -121,19 +121,23 @@ def compute_coordinates(masks):
     return positives, negatives
 
 
-def make_small_dataset(fld):
+def load_sat_images(path):
+    sat_images = []
+    for sat_image, ndvi in (load_satellite_img(path, d) for d in train_images):
+        sat_images.append(np.concatenate((sat_image, ndvi), axis=2))
+    return np.stack(sat_images, axis=0)
+
+
+def make_small_dataset(path):
     """Computes full dataset"""
     logger.info("load landslides and masks")
-    sat_images = []
-    for sat_image, ndvi in (load_satellite_img(fld, d) for d in train_images):
-        sat_images.append(np.concatenate((sat_image, ndvi), axis=2))
-    sat_images = np.stack(sat_images, axis=0)
+    sat_images = load_sat_images(path)
     
     logger.info("calculate coordinates per mask")
-    masks = list(load_satellite_mask(fld, d) for d in train_images)
+    masks = list(load_satellite_mask(path, d) for d in train_images)
     positives, negatives = compute_coordinates(masks)
-
-    altitude, slope = load_static_data(fld)
+    
+    altitude, slope = load_static_data(path)
     
     return sat_images, positives, negatives, altitude, slope
 
@@ -194,13 +198,6 @@ def patch_generator(images, pos, neg, altitude, slope, size=25, batch_size=64, p
 
 def main():
     pass
-
-
-def test2():
-    sat_images, pos, neg, alt, slp = make_small_dataset("data/")
-    gen = patch_generator(sat_images, pos, neg, alt, slp, 25, 512, 0.4)
-    for i, (X, y) in enumerate(gen):
-        print(i, X.shape, y.shape)
 
 
 if __name__ == "__main__":
