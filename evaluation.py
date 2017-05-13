@@ -90,9 +90,16 @@ def plot_confusion_matrix(cm, classes,
 
 
 def get_metrics():
-    return {"precision": precision,
-            "recall"   : recall,
-            "f1_score" : f1_score}
+    return dict([
+        ("precision", precision),
+        ("recall", recall),
+        ("f1_score", f1_score),
+        ("f0.5_score", f05_score),
+    ])
+
+
+def get_metric_functions():
+    return [precision, recall, f1_score, f05_score]
 
 
 def precision(y_true, y_pred):
@@ -118,4 +125,16 @@ def f1_score(y_true, y_pred):
 
     fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
 
+    return fbeta_score
+
+
+def f05_score(y_true, y_pred):
+    p = precision(y_true, y_pred)
+    r = recall(y_true, y_pred)
+    
+    beta = 0.5  # fmeasure
+    bb = beta ** 2
+    
+    fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
+    
     return fbeta_score

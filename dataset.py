@@ -126,7 +126,7 @@ def make_small_dataset(fld):
     logger.info("load landslides and masks")
     sat_images = []
     for sat_image, ndvi in (load_satellite_img(fld, d) for d in train_images):
-        sat_images.append(np.concatenate((sat_image, np.expand_dims(ndvi, 2)), axis=2))
+        sat_images.append(np.concatenate((sat_image, ndvi), axis=2))
     sat_images = np.stack(sat_images, axis=0)
     
     logger.info("calculate coordinates per mask")

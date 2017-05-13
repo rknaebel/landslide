@@ -92,6 +92,40 @@ def main_train():
     model.save(args.model)
 
 
+def main_train2():
+    print("load data into memory")
+    sat_images, pos, neg, alt, slp = dataset.make_small_dataset("data/")
+    print("initialize training generator")
+    train_gen = dataset.patch_generator(sat_images, pos, neg, alt, slp,
+                                        size=args.area_size,
+                                        batch_size=args.batch_size,
+                                        p=args.p_train)
+    print("initialize validation generator")
+    val_gen = dataset.patch_generator(sat_images, pos, neg, alt, slp,
+                                      size=args.area_size,
+                                      batch_size=args.batch_size,
+                                      p=args.p_val)
+    print("get network")
+    model = networks.get_model_by_name(args.model_type)(args.area_size)
+    print("compile")
+    custom_metrics = evaluation.get_metric_functions()
+    model.compile(optimizer="adam",
+                  loss="binary_crossentropy",
+                  metrics=["accuracy"] + custom_metrics)
+    print(model.summary())
+    print("start training")
+    model.fit_generator(train_gen,
+                        steps_per_epoch=args.steps_per_epoch,
+                        epochs=args.epochs,
+                        validation_data=val_gen,
+                        validation_steps=args.steps_per_val,
+                        verbose=True,
+                        max_q_size=args.queue_size,
+                        workers=1)
+    print("store model")
+    model.save(args.model)
+
+
 def main_eval():
     print("load specified model")
     model = load_model(args.model, custom_objects=evaluation.get_metrics())
@@ -103,7 +137,7 @@ def main_eval():
 
 if __name__ == "__main__":
     if args.mode == "train":
-        main_train()
+        main_train2()
     elif args.mode == "eval":
         main_eval()
     else:
