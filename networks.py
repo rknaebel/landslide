@@ -82,3 +82,7 @@ model_pool = {
 
 def get_model_pool():
     return model_pool
+
+
+def get_model_by_name(name):
+    return model_pool[name]

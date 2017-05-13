@@ -19,6 +19,9 @@ parser.add_argument("--data", action="store", dest="data",
 parser.add_argument("--model", action="store", dest="model",
                     default="models/model.h5")
 
+parser.add_argument("--type", action="store", dest="model_type",
+                    default="simple_conv")
+
 parser.add_argument("--batch", action="store", dest="batch_size",
                     default=64, type=int)
 
@@ -69,7 +72,7 @@ def main_train():
                                            batch_size=args.batch_size,
                                            p=args.p_val)
     print("get network")
-    model = networks.get_model_2(args.area_size)
+    model = networks.get_model_by_name(args.model_type)(args.area_size)
     print("compile")
     custom_metrics = list(evaluation.get_metrics().values())
     model.compile(optimizer="adam",
