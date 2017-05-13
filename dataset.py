@@ -39,7 +39,7 @@ slp = 'DEM_slope.tif'
 
 def load_satellite_img(path, date, normalize=True):
     img = io.imread(path + date + ".tif").astype(np.float32)
-    ndvi = io.imread(path + date + "_NDVI.tif").astype(np.float32)
+    ndvi = io.imread(path + date + "_NDVI.tif").astype(np.float32)[..., None]
     if normalize:
         img /= 20000.0
         ndvi /= 255.0  # TODO ask paul: too high ?
@@ -67,6 +67,10 @@ def load_image_eval(path):
     return load_satellite_img(path, satellite_images[-1])
 
 
+def get_single_satellite_features(path, date):
+    sat_image, ndvi = load_satellite_img(path, date)
+    return np.concatenate((sat_image, ndvi), axis=2)
+
 def extract_patch(data, x, y, size):
     """Expects a 3 dimensional image (height,width,channels)"""
     diff = size // 2
@@ -81,9 +85,7 @@ def getLandslideDataFor(date):
     img, ndvi = load_satellite_img(fld, date)
     mask = load_satellite_mask(fld, date)
     prev_img, prev_ndvi = load_satellite_img(fld, train_images[prev_date_idx])
-    image = np.concatenate((img, np.expand_dims(ndvi, 2)), axis=2)
-    prev_image = np.concatenate((prev_img, np.expand_dims(prev_ndvi, 2)), axis=2)
-    image = np.concatenate((image, prev_image, np.expand_dims(altitude, 2), np.expand_dims(slope, axis=2)), axis=2)
+    image = np.concatenate((img, ndvi, prev_img, prev_ndvi, altitude, slope), axis=2)
     return image, mask
 
 
