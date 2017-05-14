@@ -74,6 +74,46 @@ def get_model_2(area):
     return model
 
 
+from keras.layers import Input, merge
+
+
+def get_model_3(area):
+    """First inception network implementation"""
+    x = input_image = Input(shape=(area, area, 14))
+
+    tower_0 = Conv2D(64, 1, 1, border_mode='same', activation='relu')(x)
+    tower_1 = Conv2D(64, 1, 1, border_mode='same', activation='relu')(x)
+    tower_1 = Conv2D(64, 3, 3, border_mode='same', activation='relu')(tower_1)
+    tower_2 = Conv2D(64, 1, 1, border_mode='same', activation='relu')(x)
+    tower_2 = Conv2D(64, 5, 5, border_mode='same', activation='relu')(tower_2)
+    tower_3 = MaxPool2D((3, 3), strides=(1, 1), border_mode='same')(x)
+    tower_3 = Conv2D(64, 1, 1, border_mode='same', activation='relu')(tower_3)
+    x = merge([tower_0, tower_1, tower_2, tower_3], mode='concat', concat_axis=3)
+    x = Dropout(0.5)(x)
+
+    tower_0 = Conv2D(32, 1, 1, border_mode='same', activation='relu')(x)
+    tower_1 = Conv2D(32, 1, 1, border_mode='same', activation='relu')(x)
+    tower_1 = Conv2D(32, 3, 3, border_mode='same', activation='relu')(tower_1)
+    tower_2 = Conv2D(32, 1, 1, border_mode='same', activation='relu')(x)
+    tower_2 = Conv2D(32, 5, 5, border_mode='same', activation='relu')(tower_2)
+    tower_3 = MaxPool2D((3, 3), strides=(1, 1), border_mode='same')(x)
+    tower_3 = Conv2D(32, 1, 1, border_mode='same', activation='relu')(tower_3)
+    x = merge([tower_0, tower_1, tower_2, tower_3], mode='concat', concat_axis=3)
+    x = Dropout(0.5)(x)
+
+    x = AvgPool2D((3, 3), strides=(1, 1))(x)
+    x = Flatten()(x)
+    # model.add(Dropout(0.5))
+    x = Dense(1)(x)
+    x = Activation('softmax')(x)
+
+    return Model(input_image, x)
+
+def get_model_4(area):
+    """First res network implementation"""
+    pass
+
+
 model_pool = {
     "simple_conv"       : get_model_1,
     "medium_maxout_conv": get_model_2

@@ -192,6 +192,22 @@ def patch_generator(images, pos, neg, altitude, slope, size=25, batch_size=64, p
         yield X, y
 
 
+# TODO: implement following functionality
+# featurewise_center=False,  # set input mean to 0 over the dataset
+# samplewise_center=False,  # set each sample mean to 0
+# featurewise_std_normalization=False,  # divide inputs by std of the dataset
+# samplewise_std_normalization=False,  # divide each input by its std
+# zca_whitening=False,  # apply ZCA whitening
+# rotation_range=0,  # randomly rotate images in the range (degrees, 0 to 180)
+# width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
+# height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
+# horizontal_flip=True,  # randomly flip images
+# vertical_flip=False)  # randomly flip images
+def augmented_patch_generator(g):
+    """Expects a patch generator g and returns another generator that augments the results of g"""
+    return g
+
+
 def main():
     pass
 
