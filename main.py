@@ -14,7 +14,10 @@ parser.add_argument("--mode", action="store", dest="mode",
                     default="")
 
 parser.add_argument("--data", action="store", dest="data",
-                    default="tmp/data.h5")
+                    default="data/")
+
+parser.add_argument("--h5data", action="store", dest="h5data",
+                    default="/tmp/data.h5")
 
 parser.add_argument("--model", action="store", dest="model",
                     default="models/model.h5")
@@ -58,16 +61,16 @@ args.steps_per_val = args.samples_val // args.batch_size
 def main_train():
     print("check for data.h5")
     try:
-        open(args.data, "r")
+        open(args.h5data, "r")
     except FileNotFoundError:
-        dataset.makeH5Dataset(args.data)
+        dataset.makeH5Dataset(args.h5data)
     print("initialize training generator")
-    train_gen = dataset.patchGeneratorFromH5(args.data,
+    train_gen = dataset.patchGeneratorFromH5(args.h5data,
                                              size=args.area_size,
                                              batch_size=args.batch_size,
                                              p=args.p_train)
     print("initialize validation generator")
-    val_gen = dataset.patchGeneratorFromH5(args.data,
+    val_gen = dataset.patchGeneratorFromH5(args.h5data,
                                            size=args.area_size,
                                            batch_size=args.batch_size,
                                            p=args.p_val)
@@ -94,7 +97,7 @@ def main_train():
 
 def main_train2():
     print("load data into memory")
-    sat_images, pos, neg, alt, slp = dataset.make_small_dataset("data/")
+    sat_images, pos, neg, alt, slp = dataset.make_small_dataset(args.data)
     print("initialize training generator")
     train_gen = dataset.patch_generator(sat_images, pos, neg, alt, slp,
                                         size=args.area_size,
@@ -130,9 +133,9 @@ def main_eval():
     print("load specified model")
     model = load_model(args.model, custom_objects=evaluation.get_metrics())
     print("load evaluation image")
-    img = dataset.loadEvaluationImage()
+    img = dataset.load_image_eval(args.data)
     print("run evaluation on final year")
-    y_pred = evaluation.evaluate_model(model, img, args.area_size)
+    y_pred = evaluation.predict_image(model, img, args.area_size)
     evaluation.save_image_as(y_pred, "res/out.png")
 
 if __name__ == "__main__":
