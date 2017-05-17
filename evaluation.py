@@ -23,7 +23,6 @@ def generate_patches_full(img, batch_size, size):
 
 
 def predict_image(model, img, size):
-    assert img.shape == 3
     offset = size // 2
     batch_size = 1024
     x, y, z = img.shape
@@ -48,7 +47,7 @@ def get_metrics():
         ("precision", precision),
         ("recall", recall),
         ("f1_score", f1_score),
-        ("f0.5_score", f05_score),
+        ("f05_score", f05_score),
     ])
 
 
