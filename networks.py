@@ -1,14 +1,11 @@
-from keras.layers import Activation, AvgPool2D, Conv2D, Dense, Dropout, Flatten, MaxPool2D
+from keras.layers import Activation, AvgPool2D, Conv2D, Dense, Dropout, Flatten, Input, MaxPool2D, merge
 from keras.models import Model, Sequential
-from keras.layers import Input, merge
 
 from utils import Maxout
 
-from argparse import ArgumentParser
 
-
-def get_convnet_landslide_all(args: ArgumentParser) -> Model:
-    input_shape = (args.area, args.area, 14)
+def get_convnet_landslide_all(args) -> Model:
+    input_shape = (args.area_size, args.area_size, 14)
     model = Sequential()
     model.add(Conv2D(8, 3, 3, input_shape=input_shape, init='normal'))
     model.add(Activation('relu'))
@@ -26,9 +23,19 @@ def get_convnet_landslide_all(args: ArgumentParser) -> Model:
     return model
 
 
+def get_test_model(args):
+    y = x = Input(shape=(args.area_size, args.area_size, 14))
+    y = Conv2D(32, (5, 5))(y)
+    y = Activation('relu')(y)
+    y = AvgPool2D((3, 3), strides=(1, 1))(y)
+    y = Flatten(name="flatten")(y)
+    y = Dense(1, name='last_layer')(y)
+    y = Activation('sigmoid')(y)
+    return Model(x, y)
+
 def get_model_1(args):
     model = Sequential()
-    model.add(Conv2D(32, (5, 5), input_shape=(args.area, args.area, 14)))
+    model.add(Conv2D(32, (5, 5), input_shape=(args.area_size, args.area_size, 14)))
     model.add(Activation('relu'))
     model.add(Conv2D(16, (3, 3)))
     model.add(Activation('relu'))
@@ -46,7 +53,7 @@ def get_model_1(args):
 
 def get_model_2(args):
     model = Sequential()
-    model.add(Conv2D(32, (5, 1), padding="same", input_shape=(args.area, args.area, 14)))
+    model.add(Conv2D(32, (5, 1), padding="same", input_shape=(args.area_size, args.area_size, 14)))
     model.add(Activation('relu'))
     model.add(Conv2D(32, (1, 5), padding="same"))
     model.add(Maxout())
@@ -80,7 +87,7 @@ def get_model_2(args):
 def get_model_cifar(args):
     model = Sequential()
 
-    model.add(Conv2D(32, (3, 3), padding='same', input_shape=(args.area, args.area, 14)))
+    model.add(Conv2D(32, (3, 3), padding='same', input_shape=(args.area_size, args.area_size, 14)))
     model.add(Activation('relu'))
     model.add(Conv2D(32, (3, 3)))
     model.add(Activation('relu'))
@@ -106,7 +113,7 @@ def get_model_cifar(args):
 
 def get_model_3(args):
     """First inception network implementation"""
-    x = input_image = Input(shape=(args.area, args.area, 14))
+    x = input_image = Input(shape=(args.area_size, args.area_size, 14))
 
     tower_0 = Conv2D(64, (1, 1), border_mode='same', activation='relu')(x)
     tower_1 = Conv2D(64, (1, 1), border_mode='same', activation='relu')(x)
@@ -139,7 +146,7 @@ def get_model_3(args):
 
 def get_model_4(args):
     """First res network implementation"""
-    x = input_image = Input(shape=(args.area, args.area, 14))
+    x = input_image = Input(shape=(args.area_size, args.area_size, 14))
 
     x = Conv2D(filters=64, kernel_size=(1, 1), border_mode='same')(x)
 
@@ -189,6 +196,7 @@ def get_model_4(args):
 
 
 model_pool = {
+    "test"              : get_test_model,
     "simple_conv"       : get_model_1,
     "medium_maxout_conv": get_model_2,
     "inception_net"     : get_model_3,

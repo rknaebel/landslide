@@ -4,6 +4,7 @@ from keras.models import load_model
 
 import dataset
 import evaluation
+import h5dataset
 import networks
 import visualize
 
@@ -18,7 +19,7 @@ parser.add_argument("--data", action="store", dest="data",
                     default="data/")
 
 parser.add_argument("--h5data", action="store", dest="h5data",
-                    default="/tmp/data.h5")
+                    default="")
 
 parser.add_argument("--model", action="store", dest="model",
                     default="models/model.h5")
@@ -62,24 +63,27 @@ args.steps_per_val = args.samples_val // args.batch_size
 ################################################################################
 
 
-def main_train():
+def main_train_h5():
     print("check for data.h5")
     try:
         open(args.h5data, "r")
     except FileNotFoundError:
-        dataset.makeH5Dataset(args.h5data)
+        h5dataset.make_dataset(args.h5data)
+    print("load remaining data")
+    sat_images = dataset.load_sat_images(args.data)
+    alt, slp = dataset.load_static_data(args.data)
     print("initialize training generator")
-    train_gen = dataset.patchGeneratorFromH5(args.h5data,
-                                             size=args.area_size,
-                                             batch_size=args.batch_size,
-                                             p=args.p_train)
+    train_gen = h5dataset.patch_generator_from_h5(args.h5data, sat_images, alt, slp,
+                                                  size=args.area_size,
+                                                  batch_size=args.batch_size,
+                                                  p=args.p_train)
     print("initialize validation generator")
-    val_gen = dataset.patchGeneratorFromH5(args.h5data,
-                                           size=args.area_size,
-                                           batch_size=args.batch_size,
-                                           p=args.p_val)
+    val_gen = h5dataset.patch_generator_from_h5(args.h5data, sat_images, alt, slp,
+                                                size=args.area_size,
+                                                batch_size=args.batch_size,
+                                                p=args.p_val)
     print("get network")
-    model = networks.get_model_by_name(args.model_type)(args.area_size)
+    model = networks.get_model_by_name(args.model_type)(args)
     print("compile")
     custom_metrics = list(evaluation.get_metrics().values())
     model.compile(optimizer="adam",
@@ -99,7 +103,7 @@ def main_train():
     model.save(args.model)
 
 
-def main_train2():
+def main_train():
     print("load data into memory")
     sat_images, pos, neg, alt, slp = dataset.make_small_dataset(args.data)
     print("initialize training generator")
@@ -113,7 +117,7 @@ def main_train2():
                                       batch_size=args.batch_size,
                                       p=args.p_val)
     print("get network")
-    model = networks.get_model_by_name(args.model_type)(args.area_size)
+    model = networks.get_model_by_name(args.model_type)(args)
     print("compile")
     custom_metrics = evaluation.get_metric_functions()
     model.compile(optimizer="adam",
@@ -142,9 +146,13 @@ def main_eval():
     y_pred = evaluation.predict_image(model, img, args.area_size)
     visualize.save_image_as(y_pred, "res/out.png")
 
+
 if __name__ == "__main__":
     if args.mode == "train":
-        main_train2()
+        if args.h5data:
+            main_train_h5()
+        else:
+            main_train()
     elif args.mode == "eval":
         main_eval()
     else:
