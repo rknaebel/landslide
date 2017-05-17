@@ -5,6 +5,7 @@ from keras.models import load_model
 import dataset
 import evaluation
 import networks
+import visualize
 
 ################################################################################
 
@@ -48,6 +49,9 @@ parser.add_argument("--p", action="store", dest="p_train",
 
 parser.add_argument("--p_val", action="store", dest="p_val",
                     default=0.01, type=float)
+
+parser.add_argument("--gpu", action="store", dest="gpu",
+                    default=-1, type=int)
 
 args = parser.parse_args()
 
@@ -136,7 +140,7 @@ def main_eval():
     img = dataset.load_image_eval(args.data)
     print("run evaluation on final year")
     y_pred = evaluation.predict_image(model, img, args.area_size)
-    evaluation.save_image_as(y_pred, "res/out.png")
+    visualize.save_image_as(y_pred, "res/out.png")
 
 if __name__ == "__main__":
     if args.mode == "train":
