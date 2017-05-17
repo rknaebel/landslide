@@ -20,6 +20,7 @@ def generate_patches_full(img, batch_size, size):
         if ctr == batch_size:
             yield batch
             ctr = 0
+    yield batch[:ctr]
 
 
 def predict_image(model, img, size):
