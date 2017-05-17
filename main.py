@@ -8,6 +8,8 @@ import h5dataset
 import networks
 import visualize
 
+import tensorflow as tf
+
 ################################################################################
 
 parser = argparse.ArgumentParser()
@@ -52,7 +54,7 @@ parser.add_argument("--p_val", action="store", dest="p_val",
                     default=0.01, type=float)
 
 parser.add_argument("--gpu", action="store", dest="gpu",
-                    default=-1, type=int)
+                    default=0, type=int)
 
 args = parser.parse_args()
 
@@ -82,10 +84,11 @@ def main_train_h5():
                                                 size=args.area_size,
                                                 batch_size=args.batch_size,
                                                 p=args.p_val)
-    print("get network")
-    model = networks.get_model_by_name(args.model_type)(args)
+    print("get network on gpu{}".format(args.gpu))
+    with tf.device("/gpu:{}".format(args.gpu)):
+        model = networks.get_model_by_name(args.model_type)(args)
     print("compile")
-    custom_metrics = list(evaluation.get_metrics().values())
+    custom_metrics = evaluation.get_metric_functions()
     model.compile(optimizer="adam",
                   loss="binary_crossentropy",
                   metrics=["accuracy"] + custom_metrics)
@@ -116,8 +119,9 @@ def main_train():
                                       size=args.area_size,
                                       batch_size=args.batch_size,
                                       p=args.p_val)
-    print("get network")
-    model = networks.get_model_by_name(args.model_type)(args)
+    print("get network on gpu{}".format(args.gpu))
+    with tf.device("/gpu:{}".format(args.gpu)):
+        model = networks.get_model_by_name(args.model_type)(args)
     print("compile")
     custom_metrics = evaluation.get_metric_functions()
     model.compile(optimizer="adam",
