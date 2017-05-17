@@ -23,16 +23,15 @@ def generate_patches_full(img, batch_size, size):
     yield batch[:ctr]
 
 
-def predict_image(model, img, size):
-    offset = size // 2
-    batch_size = 1024
+def predict_image(model, img, args):
+    offset = args.area_size // 2
     x, y, z = img.shape
     
     img = padding(img, offset)
     
     y_pred = []
-    for batch in generate_patches_full(img, batch_size, size):
-        y_pred.append(model.predict(batch, batch_size=batch_size, verbose=True))
+    for batch in generate_patches_full(img, args.batch_size, args.area_size):
+        y_pred.append(model.predict(batch, batch_size=args.batch_size, verbose=True))
     y_pred = np.concatenate(y_pred, axis=0)
     # reshape to original xy-dimensions
     y_pred = y_pred.reshape((x, y))
