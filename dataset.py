@@ -70,22 +70,12 @@ def get_single_satellite_features(path, date):
     sat_image, ndvi = load_satellite_img(path, date)
     return np.concatenate((sat_image, ndvi), axis=2)
 
+
 def extract_patch(data, x, y, size):
     """Expects a 3 dimensional image (height,width,channels)"""
     diff = size // 2
     patch = data[x - diff:x + diff + 1, y - diff:y + diff + 1, :]
     return patch
-
-
-def getLandslideDataFor(date):
-    altitude, slope = load_static_data(fld)
-    date_idx = train_images.index(date)
-    prev_date_idx = date_idx - 1 if date_idx >= 1 else 0
-    img, ndvi = load_satellite_img(fld, date)
-    mask = load_satellite_mask(fld, date)
-    prev_img, prev_ndvi = load_satellite_img(fld, train_images[prev_date_idx])
-    image = np.concatenate((img, ndvi, prev_img, prev_ndvi, altitude, slope), axis=2)
-    return image, mask
 
 
 def patch_validator(shape, pos, size):
