@@ -27,6 +27,9 @@ parser.add_argument("--h5data", action="store", dest="h5data",
 parser.add_argument("--model", action="store", dest="model",
                     default="models/model.h5")
 
+parser.add_argument("--pred", action="store", dest="pred",
+                    default="")
+
 parser.add_argument("--type", action="store", dest="model_type",
                     default="simple_conv")
 
@@ -145,7 +148,11 @@ def main_eval():
 
 
 def main_visualization():
-    pass
+    mask = dataset.load_mask_eval(args.data)
+    pred = np.load(args.pred)
+    visualize.plot_precision_recall(mask, pred, "{}.prc.png".format(args.pred[:-4]))
+    visualize.plot_roc_curve(mask, pred, "{}.roc.png".format(args.pred[:-4]))
+    visualize.save_image_as(pred, "{}.png".format(args.pred[:-3]))
 
 
 if __name__ == "__main__":

@@ -66,6 +66,10 @@ def load_image_eval(path):
     return np.concatenate((img1, img2, altitude, slope), 2)
 
 
+def load_mask_eval(path):
+    return load_satellite_mask(path, satellite_images[-1])
+
+
 def get_single_satellite_features(path, date):
     sat_image, ndvi = load_satellite_img(path, date)
     return np.concatenate((sat_image, ndvi), axis=2)

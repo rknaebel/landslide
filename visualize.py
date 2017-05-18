@@ -1,17 +1,30 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import precision_recall_curve
 
 # TODO: ROC Curve analysis
 # TODO: AUC
 
 
-def plot_precision_recall():
-    pass
+def plot_precision_recall(mask, prediction, path):
+    y = mask.flatten()
+    y_pred = prediction.flatten()
+    precision, recall, thresholds = precision_recall_curve(y, y_pred)
+    plt.plot(recall, precision)
+    plt.savefig(path, dpi=600)
+    plt.close()
+    
 
-
-def plot_roc_curve():
-    pass
+def plot_roc_curve(mask, prediction, path):
+    y = mask.flatten()
+    y_pred = prediction.flatten()
+    fpr, tpr, thresholds = roc_curve(y, y_pred)
+    roc_auc = auc(fpr, tpr)
+    plt.plot(fpr, tpr)
+    plt.savefig(path, dpi=600)
+    plt.close()
 
 
 def plot_confusion_matrix(cm, classes,
