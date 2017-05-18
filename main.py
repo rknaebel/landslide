@@ -1,6 +1,8 @@
 import argparse
+import os.path
 
 import tensorflow as tf
+from keras.callbacks import CSVLogger, EarlyStopping, ModelCheckpoint
 from keras.models import load_model
 
 import dataset
@@ -57,6 +59,7 @@ parser.add_argument("--gpu", action="store", dest="gpu",
 
 args = parser.parse_args()
 
+args.model_name = os.path.basename(args.model)
 args.steps_per_epoch = args.samples // args.batch_size
 args.steps_per_val = args.samples_val // args.batch_size
 
@@ -106,6 +109,14 @@ def main_train():
                   loss="binary_crossentropy",
                   metrics=["accuracy"] + custom_metrics)
     print(model.summary())
+    print("define callbacks")
+    cp = ModelCheckpoint(filepath=args.model,
+                         verbose=1,
+                         save_best_only=True)
+    csv = CSVLogger('results/{}.train.log'.format(args.model_name))
+    early = EarlyStopping(monitor='val_loss',
+                          patience=2,
+                          verbose=0)
     print("start training")
     model.fit_generator(train_gen,
                         steps_per_epoch=args.steps_per_epoch,
@@ -114,9 +125,10 @@ def main_train():
                         validation_steps=args.steps_per_val,
                         verbose=True,
                         max_q_size=args.queue_size,
-                        workers=1)
-    print("store model")
-    model.save(args.model)
+                        workers=1,
+                        callbacks=[cp, csv, early])
+    # print("store model")
+    # model.save(args.model)
 
 
 def main_eval():
