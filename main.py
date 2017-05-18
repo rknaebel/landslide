@@ -140,7 +140,7 @@ def main_eval():
     print("load evaluation image")
     img = dataset.load_image_eval(args.data)
     print("run evaluation on final year")
-    y_pred = evaluation.predict_image(model, img, args.area_size)
+    y_pred = evaluation.predict_image(model, img, args)
     np.save("/tmp/{}.pred.npy".format(args.model_name), y_pred)
 
 
