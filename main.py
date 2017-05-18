@@ -73,7 +73,7 @@ def main_train():
         try:
             open(args.h5data, "r")
         except FileNotFoundError:
-            h5dataset.make_dataset(args.h5data)
+            h5dataset.make_dataset(args.data, args.h5data)
         print("load remaining data")
         sat_images = dataset.load_sat_images(args.data)
         alt, slp = dataset.load_static_data(args.data)
