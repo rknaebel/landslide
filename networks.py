@@ -33,82 +33,85 @@ def get_test_model(args):
     y = Activation('sigmoid')(y)
     return Model(x, y)
 
-def get_model_1(args):
-    model = Sequential()
-    model.add(Conv2D(32, (5, 5), input_shape=(args.area_size, args.area_size, 14)))
-    model.add(Activation('relu'))
-    model.add(Conv2D(16, (3, 3)))
-    model.add(Activation('relu'))
-    model.add(MaxPool2D((1, 1), strides=(1, 1)))
-    model.add(Dropout(0.25))
-    #
-    model.add(AvgPool2D((3, 3), strides=(1, 1)))
-    model.add(Flatten(name="flatten"))
-    #
-    model.add(Dense(1, name='last_layer'))
-    model.add(Activation('sigmoid'))
 
-    return model
+def get_model_1(args):
+    x = input_image = Input(shape=(args.area_size, args.area_size, 14))
+    
+    x = Conv2D(32, (5, 5))(x)
+    x = Activation('relu')(x)
+    x = Conv2D(16, (3, 3))(x)
+    x = Activation('relu')(x)
+    x = MaxPool2D((1, 1), strides=(1, 1))(x)
+    x = Dropout(0.25)(x)
+    #
+    x = AvgPool2D((3, 3), strides=(1, 1))(x)
+    x = Flatten(name="flatten")(x)
+    #
+    x = Dense(1, name='last_layer')(x)
+    x = Activation('sigmoid')(x)
+    
+    return Model(input_image, x)
 
 
 def get_model_2(args):
-    model = Sequential()
-    model.add(Conv2D(32, (5, 1), padding="same", input_shape=(args.area_size, args.area_size, 14)))
-    model.add(Activation('relu'))
-    model.add(Conv2D(32, (1, 5), padding="same"))
-    model.add(Maxout())
-    model.add(Conv2D(32, (5, 1), padding="same"))
-    model.add(Activation('relu'))
-    model.add(Conv2D(32, (1, 5), padding="same"))
-    model.add(Maxout())
-    model.add(MaxPool2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+    x = input_image = Input(shape=(args.area_size, args.area_size, 14))
+    
+    x = Conv2D(32, (5, 1), padding="same")(x)
+    x = Activation('relu')(x)
+    x = Conv2D(32, (1, 5), padding="same")(x)
+    x = Maxout()(x)
+    x = Conv2D(32, (5, 1), padding="same")(x)
+    x = Activation('relu')(x)
+    x = Conv2D(32, (1, 5), padding="same")(x)
+    x = Maxout()(x)
+    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = Dropout(0.25)(x)
     #
-    model.add(Conv2D(16, (3, 1), padding="same"))
-    model.add(Activation('relu'))
-    model.add(Conv2D(16, (1, 3), padding="same"))
-    model.add(Maxout())
-    model.add(Conv2D(16, (3, 1), padding="same"))
-    model.add(Activation('relu'))
-    model.add(Conv2D(16, (1, 3), padding="same"))
-    model.add(Maxout())
-    model.add(MaxPool2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+    x = Conv2D(16, (3, 1), padding="same")(x)
+    x = Activation('relu')(x)
+    x = Conv2D(16, (1, 3), padding="same")(x)
+    x = Maxout()(x)
+    x = Conv2D(16, (3, 1), padding="same")(x)
+    x = Activation('relu')(x)
+    x = Conv2D(16, (1, 3), padding="same")(x)
+    x = Maxout()(x)
+    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = Dropout(0.25)(x)
     #
-    model.add(AvgPool2D((3, 3), strides=(1, 1)))
-    model.add(Flatten(name="flatten"))
+    x = AvgPool2D((3, 3), strides=(1, 1))(x)
+    x = Flatten(name="flatten")(x)
     #
-    model.add(Dense(1, name='last_layer'))
-    model.add(Activation('sigmoid'))
-
-    return model
+    x = Dense(1, name='last_layer')(x)
+    x = Activation('sigmoid')(x)
+    
+    return Model(input_image, x)
 
 
 def get_model_cifar(args):
-    model = Sequential()
-
-    model.add(Conv2D(32, (3, 3), padding='same', input_shape=(args.area_size, args.area_size, 14)))
-    model.add(Activation('relu'))
-    model.add(Conv2D(32, (3, 3)))
-    model.add(Activation('relu'))
-    model.add(MaxPool2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-
-    model.add(Conv2D(64, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(64, (3, 3)))
-    model.add(Activation('relu'))
-    model.add(MaxPool2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-
-    model.add(Flatten())
-    model.add(Dense(512))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(1))
-    model.add(Activation('sigmoid'))
-
-    return model
+    x = input_image = Input(shape=(args.area_size, args.area_size, 14))
+    
+    x = Conv2D(32, (3, 3), padding='same')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(32, (3, 3))(x)
+    x = Activation('relu')(x)
+    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = Dropout(0.25)(x)
+    
+    x = Conv2D(64, (3, 3), padding='same')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(64, (3, 3))(x)
+    x = Activation('relu')(x)
+    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = Dropout(0.25)(x)
+    
+    x = Flatten()(x)
+    x = Dense(512)(x)
+    x = Activation('relu')(x)
+    x = Dropout(0.5)(x)
+    x = Dense(1)(x)
+    x = Activation('sigmoid')(x)
+    
+    return Model(input_image, x)
 
 
 def get_model_3(args):
@@ -148,39 +151,29 @@ def get_model_4(args):
     """First res network implementation"""
     x = input_image = Input(shape=(args.area_size, args.area_size, 14))
 
-    x = Conv2D(filters=64, kernel_size=(1, 1), border_mode='same')(x)
+    x = Conv2D(64, (1, 1), border_mode='same')(x)
 
-    y = Conv2D(filters=64, kernel_size=(3, 1), border_mode='same')(x)
-    y = Activation('relu')(y)
-    y = Conv2D(filters=64, kernel_size=(1, 3), border_mode='same')(y)
-    y = Activation('relu')(y)
-    y = Conv2D(filters=64, kernel_size=(3, 1), border_mode='same')(y)
-    y = Activation('relu')(y)
-    y = Conv2D(filters=64, kernel_size=(1, 3), border_mode='same')(y)
+    y = Conv2D(64, (3, 1), border_mode='same', activation="relu")(x)
+    y = Conv2D(64, (1, 3), border_mode='same', activation="relu")(y)
+    y = Conv2D(64, (3, 1), border_mode='same', activation="relu")(y)
+    y = Conv2D(64, (1, 3), border_mode='same', activation="relu")(y)
     # this returns x + y.
     x = merge([x, y], mode='sum')
     x = Activation('relu')(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
 
-    y = Conv2D(filters=64, kernel_size=(3, 1), border_mode='same')(x)
-    y = Activation('relu')(y)
-    y = Conv2D(filters=64, kernel_size=(1, 3), border_mode='same')(y)
-    y = Activation('relu')(y)
-    y = Conv2D(filters=64, kernel_size=(3, 1), border_mode='same')(y)
-    y = Activation('relu')(y)
-    y = Conv2D(filters=64, kernel_size=(1, 3), border_mode='same')(y)
+    y = Conv2D(64, (3, 1), border_mode='same', activation="relu")(x)
+    y = Conv2D(64, (1, 3), border_mode='same', activation="relu")(y)
+    y = Conv2D(64, (3, 1), border_mode='same', activation="relu")(y)
+    y = Conv2D(64, (1, 3), border_mode='same', activation="relu")(y)
     # this returns x + y.
     x = merge([x, y], mode='sum')
-    x = Activation('relu')(x)
-    x = Conv2D(filters=32, kernel_size=(1, 1), border_mode='same')(x)
+    x = Conv2D(32, (1, 1), border_mode='same', activation="relu")(x)
 
-    y = Conv2D(filters=32, kernel_size=(3, 1), border_mode='same')(x)
-    y = Activation('relu')(y)
-    y = Conv2D(filters=32, kernel_size=(1, 3), border_mode='same')(y)
-    y = Activation('relu')(y)
-    y = Conv2D(filters=32, kernel_size=(3, 1), border_mode='same')(y)
-    y = Activation('relu')(y)
-    y = Conv2D(filters=32, kernel_size=(1, 3), border_mode='same')(y)
+    y = Conv2D(32, (3, 1), border_mode='same', activation="relu")(x)
+    y = Conv2D(32, (1, 3), border_mode='same', activation="relu")(y)
+    y = Conv2D(32, (3, 1), border_mode='same', activation="relu")(y)
+    y = Conv2D(32, (1, 3), border_mode='same', activation="relu")(y)
     # this returns x + y.
     x = merge([x, y], mode='sum')
     x = Activation('relu')(x)

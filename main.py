@@ -1,5 +1,6 @@
 import argparse
 
+import tensorflow as tf
 from keras.models import load_model
 
 import dataset
@@ -7,8 +8,6 @@ import evaluation
 import h5dataset
 import networks
 import visualize
-
-import tensorflow as tf
 
 ################################################################################
 
@@ -65,60 +64,39 @@ args.steps_per_val = args.samples_val // args.batch_size
 ################################################################################
 
 
-def main_train_h5():
-    print("check for data.h5")
-    try:
-        open(args.h5data, "r")
-    except FileNotFoundError:
-        h5dataset.make_dataset(args.h5data)
-    print("load remaining data")
-    sat_images = dataset.load_sat_images(args.data)
-    alt, slp = dataset.load_static_data(args.data)
-    print("initialize training generator")
-    train_gen = h5dataset.patch_generator_from_h5(args.h5data, sat_images, alt, slp,
-                                                  size=args.area_size,
-                                                  batch_size=args.batch_size,
-                                                  p=args.p_train)
-    print("initialize validation generator")
-    val_gen = h5dataset.patch_generator_from_h5(args.h5data, sat_images, alt, slp,
-                                                size=args.area_size,
-                                                batch_size=args.batch_size,
-                                                p=args.p_val)
-    print("get network on gpu{}".format(args.gpu))
-    with tf.device("/gpu:{}".format(args.gpu)):
-        model = networks.get_model_by_name(args.model_type)(args)
-    print("compile")
-    custom_metrics = evaluation.get_metric_functions()
-    model.compile(optimizer="adam",
-                  loss="binary_crossentropy",
-                  metrics=["accuracy"] + custom_metrics)
-    print(model.summary())
-    print("start training")
-    model.fit_generator(train_gen,
-                        steps_per_epoch=args.steps_per_epoch,
-                        epochs=args.epochs,
-                        validation_data=val_gen,
-                        validation_steps=args.steps_per_val,
-                        verbose=True,
-                        max_q_size=args.queue_size,
-                        workers=1)
-    print("store model")
-    model.save(args.model)
-
-
 def main_train():
-    print("load data into memory")
-    sat_images, pos, neg, alt, slp = dataset.make_small_dataset(args.data)
-    print("initialize training generator")
-    train_gen = dataset.patch_generator(sat_images, pos, neg, alt, slp,
-                                        size=args.area_size,
-                                        batch_size=args.batch_size,
-                                        p=args.p_train)
-    print("initialize validation generator")
-    val_gen = dataset.patch_generator(sat_images, pos, neg, alt, slp,
-                                      size=args.area_size,
-                                      batch_size=args.batch_size,
-                                      p=args.p_val)
+    if args.h5data:
+        print("check for data.h5")
+        try:
+            open(args.h5data, "r")
+        except FileNotFoundError:
+            h5dataset.make_dataset(args.h5data)
+        print("load remaining data")
+        sat_images = dataset.load_sat_images(args.data)
+        alt, slp = dataset.load_static_data(args.data)
+        print("initialize training generator")
+        train_gen = h5dataset.patch_generator_from_h5(args.h5data, sat_images, alt, slp,
+                                                      size=args.area_size,
+                                                      batch_size=args.batch_size,
+                                                      p=args.p_train)
+        print("initialize validation generator")
+        val_gen = h5dataset.patch_generator_from_h5(args.h5data, sat_images, alt, slp,
+                                                    size=args.area_size,
+                                                    batch_size=args.batch_size,
+                                                    p=args.p_val)
+    else:
+        print("load data into memory")
+        sat_images, pos, neg, alt, slp = dataset.make_small_dataset(args.data)
+        print("initialize training generator")
+        train_gen = dataset.patch_generator(sat_images, pos, neg, alt, slp,
+                                            size=args.area_size,
+                                            batch_size=args.batch_size,
+                                            p=args.p_train)
+        print("initialize validation generator")
+        val_gen = dataset.patch_generator(sat_images, pos, neg, alt, slp,
+                                          size=args.area_size,
+                                          batch_size=args.batch_size,
+                                          p=args.p_val)
     print("get network on gpu{}".format(args.gpu))
     with tf.device("/gpu:{}".format(args.gpu)):
         model = networks.get_model_by_name(args.model_type)(args)
@@ -151,13 +129,16 @@ def main_eval():
     visualize.save_image_as(y_pred, "res/out.png")
 
 
+def main_visualization():
+    pass
+
+
 if __name__ == "__main__":
     if args.mode == "train":
-        if args.h5data:
-            main_train_h5()
-        else:
-            main_train()
+        main_train()
     elif args.mode == "eval":
         main_eval()
+    elif args.mode == "fancy":
+        main_visualization()
     else:
         print("Invalid mode!")
