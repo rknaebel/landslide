@@ -131,6 +131,9 @@ def main_train():
     # model.save(args.model)
 
 
+import numpy as np
+
+
 def main_eval():
     print("load specified model")
     model = load_model(args.model, custom_objects=evaluation.get_metrics())
@@ -138,7 +141,7 @@ def main_eval():
     img = dataset.load_image_eval(args.data)
     print("run evaluation on final year")
     y_pred = evaluation.predict_image(model, img, args.area_size)
-    visualize.save_image_as(y_pred, "res/out.png")
+    np.save("/tmp/{}.pred.npy".format(args.model_name), y_pred)
 
 
 def main_visualization():
