@@ -1,20 +1,29 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
-from sklearn.metrics import roc_curve, auc
-from sklearn.metrics import precision_recall_curve
-
-# TODO: ROC Curve analysis
-# TODO: AUC
+from sklearn.metrics import (
+    auc, classification_report, confusion_matrix, fbeta_score, precision_recall_curve,
+    roc_auc_score, roc_curve
+)
 
 
 def plot_precision_recall(mask, prediction, path):
     y = mask.flatten()
     y_pred = prediction.flatten()
     precision, recall, thresholds = precision_recall_curve(y, y_pred)
-    plt.plot(recall, precision)
+    decreasing_max_precision = np.maximum.accumulate(precision[::-1])[::-1]
+
+    fig, ax = plt.subplots(1, 1)
+    ax.hold(True)
+    ax.plot(recall, precision, '--b')
+    ax.step(recall, decreasing_max_precision, '-r')
+
     plt.savefig(path, dpi=600)
     plt.close()
+
+    print(classification_report(mask, y_pred.round()))
+    print("roc auc score", roc_auc_score(mask, y_pred))
+    print("F1 Score", fbeta_score(mask, y_pred.round(), 1))
+    print("F0.5 Score", fbeta_score(mask, y_pred.round(), 0.5))
     
 
 def plot_roc_curve(mask, prediction, path):
@@ -26,15 +35,19 @@ def plot_roc_curve(mask, prediction, path):
     plt.savefig(path, dpi=600)
     plt.close()
 
+    print("roc_auc", roc_auc)
 
-def plot_confusion_matrix(cm, classes,
+
+def plot_confusion_matrix(y_true, y_pred,
                           normalize=False,
                           title='Confusion matrix',
-                          cmap="heat"):
+                          cmap="Blues"):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
     """
+    cm = confusion_matrix(y_true, y_pred)
+    classes = [0, 1]
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
     plt.colorbar()
