@@ -168,6 +168,7 @@ def main_visualization():
     pred = np.load(y_pred_path)
     print("plot pr curve")
     visualize.plot_precision_recall(mask, pred, "{}/prc.png".format(args.model_path))
+    visualize.plot_precision_recall_curves(mask, pred, "{}/prc2.png".format(args.model_path))
     print("plot roc curve")
     visualize.plot_roc_curve(mask, pred, "{}/roc.png".format(args.model_path))
     print("store prediction image")

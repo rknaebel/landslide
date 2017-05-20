@@ -25,6 +25,21 @@ def plot_precision_recall(mask, prediction, path):
     plt.close()
 
 
+def plot_precision_recall_curves(mask, prediction, path):
+    y = mask.flatten()
+    y_pred = prediction.flatten()
+    precision, recall, thresholds = precision_recall_curve(y, y_pred)
+    
+    plt.clf()
+    plt.plot(thresholds, recall, label="Recall")
+    plt.plot(thresholds, precision, label="Precision")
+    plt.xlabel('Threshold')
+    plt.ylabel('Score')
+    
+    plt.savefig(path, dpi=600)
+    plt.close()
+    
+
 def score_model(y, prediction):
     y = y.flatten()
     y_pred = prediction.flatten()
