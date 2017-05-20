@@ -93,4 +93,4 @@ def save_image_as(img, path):
 
 
 def plot_model_as(model, path):
-    plot_model(model, to_file=path)
+    plot_model(model, to_file=path, show_shapes=True, show_layer_names=True)

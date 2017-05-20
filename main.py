@@ -1,6 +1,7 @@
 import argparse
-import os.path
+import os
 
+import numpy as np
 import tensorflow as tf
 from keras.callbacks import CSVLogger, EarlyStopping, ModelCheckpoint
 from keras.models import load_model
@@ -25,7 +26,7 @@ parser.add_argument("--h5data", action="store", dest="h5data",
                     default="")
 
 parser.add_argument("--model", action="store", dest="model",
-                    default="models/model.h5")
+                    default="model_x")
 
 parser.add_argument("--pred", action="store", dest="pred",
                     default="")
@@ -60,11 +61,18 @@ parser.add_argument("--p_val", action="store", dest="p_val",
 parser.add_argument("--gpu", action="store", dest="gpu",
                     default=0, type=int)
 
+parser.add_argument("--tmp", action="store_true", dest="tmp")
+
 args = parser.parse_args()
 
 args.model_name = os.path.basename(args.model)
 args.steps_per_epoch = args.samples // args.batch_size
 args.steps_per_val = args.samples_val // args.batch_size
+args.model_path = "{}/{}/".format("/tmp/rk" if args.tmp else "results",
+                                  args.model)
+
+if not os.path.exists(args.model_path):
+    os.makedirs(args.model_path)
 
 
 ################################################################################
@@ -113,13 +121,13 @@ def main_train():
                   metrics=["accuracy"] + custom_metrics)
     print(model.summary())
     print("define callbacks")
-    cp = ModelCheckpoint(filepath=args.model,
-                         verbose=1,
+    cp = ModelCheckpoint(filepath=args.model_path + "model.h5",
+                         verbose=False,
                          save_best_only=True)
-    csv = CSVLogger('results/{}.train.log'.format(args.model_name))
+    csv = CSVLogger('{}/train.log'.format(args.model_path))
     early = EarlyStopping(monitor='val_loss',
                           patience=2,
-                          verbose=0)
+                          verbose=False)
     print("start training")
     model.fit_generator(train_gen,
                         steps_per_epoch=args.steps_per_epoch,
@@ -129,30 +137,36 @@ def main_train():
                         verbose=True,
                         max_q_size=args.queue_size,
                         workers=1,
-                        callbacks=[cp, csv, early])
-    # print("store model")
-    # model.save(args.model)
-
-
-import numpy as np
+                        callbacks=[cp, csv])
 
 
 def main_eval():
     print("load specified model")
-    model = load_model(args.model, custom_objects=evaluation.get_metrics())
+    model = load_model(args.model_path + "/model.h5",
+                       custom_objects=evaluation.get_metrics())
     print("load evaluation image")
     img = dataset.load_image_eval(args.data)
     print("run evaluation on final year")
     y_pred = evaluation.predict_image(model, img, args)
-    np.save("/tmp/{}.pred.npy".format(args.model_name), y_pred)
+    np.save("{}/pred.npy".format(args.model_path), y_pred)
 
 
 def main_visualization():
     mask = dataset.load_mask_eval(args.data)
-    pred = np.load(args.pred)
-    visualize.plot_precision_recall(mask, pred, "{}.prc.png".format(args.pred[:-4]))
-    visualize.plot_roc_curve(mask, pred, "{}.roc.png".format(args.pred[:-4]))
-    visualize.save_image_as(pred, "{}.png".format(args.pred[:-3]))
+    y_pred_path = args.model_path + args.pred
+    print("plot model")
+    model = load_model(args.model_path + "model.h5",
+                       custom_objects=evaluation.get_metrics())
+    visualize.plot_model(model, args.model_path + "model.png")
+    print("plot training curve")
+
+    pred = np.load(y_pred_path)
+    print("plot pr curve")
+    visualize.plot_precision_recall(mask, pred, "{}/prc.png".format(args.model_path))
+    print("plot roc curve")
+    visualize.plot_roc_curve(mask, pred, "{}/roc.png".format(args.model_path))
+    print("store prediction image")
+    visualize.save_image_as(pred, "{}/pred.png".format(args.model_path))
 
 
 def main_score():
