@@ -207,12 +207,3 @@ def patch_generator(images, pos, neg, altitude, slope, size=25, batch_size=64, p
 def augmented_patch_generator(g):
     """Expects a patch generator g and returns another generator that augments the results of g"""
     return g
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    # main()
-    pass
