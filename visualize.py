@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from keras.utils import plot_model
 from sklearn.metrics import (
     auc, classification_report, confusion_matrix, fbeta_score, precision_recall_curve,
     roc_auc_score, roc_curve
@@ -10,12 +11,14 @@ def plot_precision_recall(mask, prediction, path):
     y = mask.flatten()
     y_pred = prediction.flatten()
     precision, recall, thresholds = precision_recall_curve(y, y_pred)
-    decreasing_max_precision = np.maximum.accumulate(precision[::-1])[::-1]
+    decreasing_max_precision = np.maximum.accumulate(precision)[::-1]
 
     fig, ax = plt.subplots(1, 1)
     ax.hold(True)
     ax.plot(recall, precision, '--b')
-    ax.step(recall, decreasing_max_precision, '-r')
+    ax.step(recall[::-1], decreasing_max_precision, '-r')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
 
     plt.savefig(path, dpi=600)
     plt.close()
@@ -25,7 +28,10 @@ def score_model(y, prediction):
     y = y.flatten()
     y_pred = prediction.flatten()
 
+    precision, recall, thresholds = precision_recall_curve(y, y_pred)
+
     print(classification_report(y, y_pred.round()))
+    print("Area under PR curve", auc(recall, precision))
     print("roc auc score", roc_auc_score(y, y_pred))
     print("F1 Score", fbeta_score(y, y_pred.round(), 1))
     print("F0.5 Score", fbeta_score(y, y_pred.round(), 0.5))
@@ -84,3 +90,7 @@ def save_image_as(img, path):
     plt.colorbar()
     plt.savefig(path, dpi=600)
     plt.close()
+
+
+def plot_model_as(model, path):
+    plot_model(model, to_file=path)
