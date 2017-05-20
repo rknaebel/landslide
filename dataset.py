@@ -148,6 +148,9 @@ def index_generator(data, validator, image_size, size, batch_size):
             if ctr == batch_size:
                 yield batch
                 ctr = 0
+                # restart generator randomly after one batch
+                if np.random.rand() < 0.001:
+                    break
 
 
 def patch_generator(images, pos, neg, altitude, slope, size=25, batch_size=64, p=0.4):

@@ -96,7 +96,7 @@ def plot_training_curve(logs, path):
     plt.plot(logs.val_f05_score, label="val_f05_score")
     plt.xlabel('epoch')
     plt.ylabel('percentage')
-    plt.legend(loc="lower left")
+    plt.legend()
     plt.savefig(path, dpi=600)
     plt.close()
 

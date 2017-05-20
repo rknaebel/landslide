@@ -17,8 +17,7 @@ import visualize
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--mode", action="store", dest="mode",
-                    default="")
+parser.add_argument("--modes", action="store", dest="modes", nargs="+")
 
 parser.add_argument("--data", action="store", dest="data",
                     default="data/")
@@ -178,13 +177,11 @@ def main_score():
 
 
 if __name__ == "__main__":
-    if args.mode == "train":
+    if "train" in args.modes:
         main_train()
-    elif args.mode == "eval":
+    if "eval" in args.modes:
         main_eval()
-    elif args.mode == "fancy":
+    if "fancy" in args.modes:
         main_visualization()
-    elif args.mode == "scores":
+    if "scores" in args.modes:
         main_score()
-    else:
-        print("Invalid mode!")
