@@ -63,6 +63,9 @@ parser.add_argument("--gpu", action="store", dest="gpu",
 
 parser.add_argument("--tmp", action="store_true", dest="tmp")
 
+parser.add_argument("--test", action="store", dest="test_image",
+                    default=6, type=int)
+
 args = parser.parse_args()
 
 args.model_name = os.path.basename(args.model)
@@ -84,9 +87,9 @@ def main_train():
         try:
             open(args.h5data, "r")
         except FileNotFoundError:
-            h5dataset.make_dataset(args.data, args.h5data)
+            h5dataset.make_dataset(args.data, args.h5data, args.test_image)
         print("load remaining data")
-        sat_images = dataset.load_sat_images(args.data)
+        sat_images = dataset.load_sat_images(args.data, args.test_image)
         alt, slp = dataset.load_static_data(args.data)
         print("initialize training generator")
         train_gen = h5dataset.patch_generator_from_h5(args.h5data, sat_images, alt, slp,
@@ -100,7 +103,8 @@ def main_train():
                                                     p=args.p_val)
     else:
         print("load data into memory")
-        sat_images, pos, neg, alt, slp = dataset.make_small_dataset(args.data)
+        sat_images, pos, neg, alt, slp = dataset.make_small_dataset(args.data,
+                                                                    args.test_image)
         print("initialize training generator")
         train_gen = dataset.patch_generator(sat_images, pos, neg, alt, slp,
                                             size=args.area_size,

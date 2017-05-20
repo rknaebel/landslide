@@ -7,11 +7,11 @@ import dataset
 logger = logging.getLogger('logger')
 
 
-def make_dataset(path, h5path):
+def make_dataset(path, h5path, test_image):
     f = h5py.File(h5path, "w")
     
     logger.info("load masks into memory")
-    masks = list(dataset.load_satellite_mask(path, d) for d in dataset.train_images)
+    masks = list(dataset.load_satellite_mask(path, d) for d in dataset.get_training_image_names(test_image))
     
     logger.info("calculate coordinates per mask")
     positives, negatives = dataset.compute_coordinates(masks)

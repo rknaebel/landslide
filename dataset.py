@@ -37,6 +37,10 @@ alt = 'DEM_altitude.tif'
 slp = 'DEM_slope.tif'
 
 
+def get_training_image_names(test_year):
+    return satellite_images[:test_year] + satellite_images[test_year + 1:]
+
+
 def load_satellite_img(path, date, normalize=True):
     img = io.imread(path + date + ".tif").astype(np.float32)
     ndvi = io.imread(path + date + "_NDVI.tif").astype(np.float32)[..., None]
@@ -115,20 +119,20 @@ def compute_coordinates(masks):
     return positives, negatives
 
 
-def load_sat_images(path):
+def load_sat_images(path, test_image):
     sat_images = []
-    for sat_image, ndvi in (load_satellite_img(path, d) for d in train_images):
+    for sat_image, ndvi in (load_satellite_img(path, d) for d in get_training_image_names(test_image)):
         sat_images.append(np.concatenate((sat_image, ndvi), axis=2))
     return np.stack(sat_images, axis=0)
 
 
-def make_small_dataset(path):
+def make_small_dataset(path, test_image):
     """Computes full dataset"""
     logger.info("load landslides and masks")
-    sat_images = load_sat_images(path)
+    sat_images = load_sat_images(path, test_image)
     
     logger.info("calculate coordinates per mask")
-    masks = list(load_satellite_mask(path, d) for d in train_images)
+    masks = list(load_satellite_mask(path, d) for d in get_training_image_names(test_image))
     positives, negatives = compute_coordinates(masks)
     
     altitude, slope = load_static_data(path)
