@@ -64,7 +64,7 @@ parser.add_argument("--gpu", action="store", dest="gpu",
 parser.add_argument("--tmp", action="store_true", dest="tmp")
 
 parser.add_argument("--test", action="store", dest="test_image",
-                    default=6, type=int)
+                    default=6, choices=range(7), type=int)
 
 args = parser.parse_args()
 
@@ -156,7 +156,7 @@ def main_eval():
 
 
 def main_visualization():
-    mask = dataset.load_mask_eval(args.data)
+    mask = dataset.load_mask_eval(args.data, args.test_image)
     y_pred_path = args.model_path + args.pred
     print("plot model")
     model = load_model(args.model_path + "model.h5",
@@ -175,7 +175,7 @@ def main_visualization():
 
 
 def main_score():
-    mask = dataset.load_mask_eval(args.data)
+    mask = dataset.load_mask_eval(args.data, args.test_image)
     pred = np.load(args.pred)
     visualize.score_model(mask, pred)
 

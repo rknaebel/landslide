@@ -63,15 +63,15 @@ def load_static_data(path: str, normalize: bool = True):
     return altitude, slope
 
 
-def load_image_eval(path):
+def load_image_eval(path, test_image):
     altitude, slope = load_static_data(path)
-    img1 = get_single_satellite_features(path, satellite_images[-1])
-    img2 = get_single_satellite_features(path, satellite_images[-2])
+    img1 = get_single_satellite_features(path, satellite_images[test_image])
+    img2 = get_single_satellite_features(path, satellite_images[min(0, test_image - 1)])
     return np.concatenate((img1, img2, altitude, slope), 2)
 
 
-def load_mask_eval(path):
-    return load_satellite_mask(path, satellite_images[-1])
+def load_mask_eval(path, test_image):
+    return load_satellite_mask(path, satellite_images[test_image])
 
 
 def get_single_satellite_features(path, date):
