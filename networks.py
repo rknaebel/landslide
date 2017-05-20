@@ -53,7 +53,7 @@ def get_model_1(args):
     return Model(input_image, x)
 
 
-def get_model_2(args):
+def get_model_maxout(args):
     x = input_image = Input(shape=(args.area_size, args.area_size, 14))
     
     x = Conv2D(32, (5, 1), padding="same")(x)
@@ -67,13 +67,24 @@ def get_model_2(args):
     x = MaxPool2D(pool_size=(2, 2))(x)
     x = Dropout(0.25)(x)
     #
-    x = Conv2D(16, (3, 1), padding="same")(x)
+    x = Conv2D(64, (3, 1), padding="same")(x)
     x = Activation('relu')(x)
-    x = Conv2D(16, (1, 3), padding="same")(x)
+    x = Conv2D(64, (1, 3), padding="same")(x)
     x = Maxout()(x)
-    x = Conv2D(16, (3, 1), padding="same")(x)
+    x = Conv2D(64, (3, 1), padding="same")(x)
     x = Activation('relu')(x)
-    x = Conv2D(16, (1, 3), padding="same")(x)
+    x = Conv2D(64, (1, 3), padding="same")(x)
+    x = Maxout()(x)
+    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = Dropout(0.25)(x)
+    #
+    x = Conv2D(64, (3, 1), padding="same")(x)
+    x = Activation('relu')(x)
+    x = Conv2D(64, (1, 3), padding="same")(x)
+    x = Maxout()(x)
+    x = Conv2D(64, (3, 1), padding="same")(x)
+    x = Activation('relu')(x)
+    x = Conv2D(64, (1, 3), padding="same")(x)
     x = Maxout()(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
     x = Dropout(0.25)(x)
@@ -89,24 +100,42 @@ def get_model_2(args):
 
 def get_model_cifar(args):
     x = input_image = Input(shape=(args.area_size, args.area_size, 14))
-    
-    x = Conv2D(32, (3, 3), padding='same')(x)
+
+    x = Conv2D(32, (3, 1), padding='same')(x)
     x = Activation('relu')(x)
-    x = Conv2D(32, (3, 3))(x)
+    x = Conv2D(32, (1, 3), padding='same')(x)
     x = Activation('relu')(x)
-    x = MaxPool2D(pool_size=(2, 2))(x)
-    x = Dropout(0.25)(x)
-    
-    x = Conv2D(64, (3, 3), padding='same')(x)
+    x = Conv2D(32, (3, 1))(x)
     x = Activation('relu')(x)
-    x = Conv2D(64, (3, 3))(x)
+    x = Conv2D(32, (1, 3))(x)
     x = Activation('relu')(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
     x = Dropout(0.25)(x)
-    
-    x = Flatten()(x)
-    x = Dense(512)(x)
+
+    x = Conv2D(64, (3, 1), padding='same')(x)
     x = Activation('relu')(x)
+    x = Conv2D(64, (1, 3), padding='same')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(64, (3, 1))(x)
+    x = Activation('relu')(x)
+    x = Conv2D(64, (1, 3))(x)
+    x = Activation('relu')(x)
+    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = Dropout(0.25)(x)
+
+    x = Conv2D(32, (3, 1), padding='same')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(32, (1, 3), padding='same')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(32, (3, 1))(x)
+    x = Activation('relu')(x)
+    x = Conv2D(32, (1, 3))(x)
+    x = Activation('relu')(x)
+    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = Dropout(0.25)(x)
+
+    x = AvgPool2D((3, 3), strides=(1, 1))(x)
+    x = Flatten(name="flatten")(x)
     x = Dropout(0.5)(x)
     x = Dense(1)(x)
     x = Activation('sigmoid')(x)
@@ -114,7 +143,7 @@ def get_model_cifar(args):
     return Model(input_image, x)
 
 
-def get_model_3(args):
+def get_model_inception(args):
     """First inception network implementation"""
     x = input_image = Input(shape=(args.area_size, args.area_size, 14))
 
@@ -138,6 +167,16 @@ def get_model_3(args):
     x = merge([tower_0, tower_1, tower_2, tower_3], mode='concat', concat_axis=3)
     x = Dropout(0.5)(x)
 
+    tower_0 = Conv2D(32, (1, 1), border_mode='same', activation='relu')(x)
+    tower_1 = Conv2D(32, (1, 1), border_mode='same', activation='relu')(x)
+    tower_1 = Conv2D(32, (3, 3), border_mode='same', activation='relu')(tower_1)
+    tower_2 = Conv2D(32, (1, 1), border_mode='same', activation='relu')(x)
+    tower_2 = Conv2D(32, (5, 5), border_mode='same', activation='relu')(tower_2)
+    tower_3 = MaxPool2D((3, 3), strides=(1, 1), border_mode='same')(x)
+    tower_3 = Conv2D(32, (1, 1), border_mode='same', activation='relu')(tower_3)
+    x = merge([tower_0, tower_1, tower_2, tower_3], mode='concat', concat_axis=3)
+    x = Dropout(0.5)(x)
+    
     x = AvgPool2D((3, 3), strides=(1, 1))(x)
     x = Flatten()(x)
     # model.add(Dropout(0.5))
@@ -191,8 +230,8 @@ def get_model_4(args):
 model_pool = {
     "test"              : get_test_model,
     "simple_conv"       : get_model_1,
-    "medium_maxout_conv": get_model_2,
-    "inception"         : get_model_3,
+    "medium_maxout_conv": get_model_maxout,
+    "inception"         : get_model_inception,
     "resnet"            : get_model_4,
     "cifar"             : get_model_cifar
 }
