@@ -1,20 +1,31 @@
-# evaluation
-python3 main.py --mode train --data /home/ahmed/data/ --type simple_conv --model models/model_x1.h5 --h5data /tmp/data.h5 \
-                --area 25 \
-                --samples 250000 --batch 2048 --p 0.4 --epochs 100
+#!/usr/bin/env bash
 
-python3 main.py --mode train --data /home/ahmed/data/ --type medium_maxout_conv --model models/model_x2.h5 --h5data /tmp/data.h5 \
-                --area 25 \
-                --samples 250000 --batch 2048 --p 0.4 --epochs 100
+CUDA_VISIBLE_DEVICES=$1
+DATA=/home/ahmed/data/
+P=$2
+AREA=$3
 
-python3 main.py --mode train --data /home/ahmed/data/ --type inception_net --model models/model_x3.h5 --h5data /tmp/data.h5 \
-                --area 25 \
-                --samples 250000 --batch 2048 --p 0.4 --epochs 100
+python3 main.py --mode train --data $DATA \
+                --type simple_conv --model simple_conv_as${AREA}_p${P//./} --h5data /tmp/rk/data.h5 --tmp \
+                --area $AREA --samples 1000000 --batch 4096 \
+                --p $P --epochs 100
 
-python3 main.py --mode train --data /home/ahmed/data/ --type resnet --model models/model_x4.h5 --h5data /tmp/data.h5 \
-                --area 25 \
-                --samples 250000 --batch 2048 --p 0.4 --epochs 100
+python3 main.py --mode train --data $DATA \
+                --type medium_maxout --model medium_maxout_as${AREA}_p${P//./} --h5data /tmp/rk/data.h5 --tmp \
+                --area $AREA --samples 1000000 --batch 4096 \
+                --p $P --epochs 100
 
-python3 main.py --mode train --data /home/ahmed/data/ --type cifar --model models/model_x5.h5 --h5data /tmp/data.h5 \
-                --area 25 \
-                --samples 250000 --batch 2048 --p 0.4 --epochs 100
+python3 main.py --mode train --data $DATA \
+                --type inception --model inception_as${AREA}_p${P//./} --h5data /tmp/rk/data.h5 --tmp \
+                --area $AREA --samples 1000000 --batch 4096 \
+                --p $P --epochs 100
+
+python3 main.py --mode train --data $DATA \
+                --type resnet --model resnet_as${AREA}_p${P//./} --h5data /tmp/rk/data.h5 --tmp \
+                --area $AREA --samples 1000000 --batch 4096 \
+                --p $P --epochs 100
+
+python3 main.py --mode train --data $DATA \
+                --type cifar --model cifar_as${AREA}_p${P//./} --h5data /tmp/rk/data.h5 --tmp \
+                --area $AREA --samples 1000000 --batch 4096 \
+                --p $P --epochs 100

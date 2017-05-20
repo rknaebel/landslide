@@ -192,7 +192,7 @@ model_pool = {
     "test"              : get_test_model,
     "simple_conv"       : get_model_1,
     "medium_maxout_conv": get_model_2,
-    "inception_net"     : get_model_3,
+    "inception"         : get_model_3,
     "resnet"            : get_model_4,
     "cifar"             : get_model_cifar
 }
