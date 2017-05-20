@@ -2,6 +2,7 @@ import argparse
 import os
 
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from keras.callbacks import CSVLogger, EarlyStopping, ModelCheckpoint
 from keras.models import load_model
@@ -159,7 +160,8 @@ def main_visualization():
                        custom_objects=evaluation.get_metrics())
     visualize.plot_model(model, args.model_path + "model.png")
     print("plot training curve")
-
+    logs = pd.read_csv(args.model_path + "train.log")
+    visualize.plot_training_curve(logs, "{}/train.png".format(args.model_path))
     pred = np.load(y_pred_path)
     print("plot pr curve")
     visualize.plot_precision_recall(mask, pred, "{}/prc.png".format(args.model_path))
