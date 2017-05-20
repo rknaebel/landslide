@@ -155,6 +155,12 @@ def main_visualization():
     visualize.save_image_as(pred, "{}.png".format(args.pred[:-3]))
 
 
+def main_score():
+    mask = dataset.load_mask_eval(args.data)
+    pred = np.load(args.pred)
+    visualize.score_model(mask, pred)
+
+
 if __name__ == "__main__":
     if args.mode == "train":
         main_train()
@@ -162,5 +168,7 @@ if __name__ == "__main__":
         main_eval()
     elif args.mode == "fancy":
         main_visualization()
+    elif args.mode == "scores":
+        main_score()
     else:
         print("Invalid mode!")

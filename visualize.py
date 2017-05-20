@@ -20,10 +20,15 @@ def plot_precision_recall(mask, prediction, path):
     plt.savefig(path, dpi=600)
     plt.close()
 
-    print(classification_report(mask, y_pred.round()))
-    print("roc auc score", roc_auc_score(mask, y_pred))
-    print("F1 Score", fbeta_score(mask, y_pred.round(), 1))
-    print("F0.5 Score", fbeta_score(mask, y_pred.round(), 0.5))
+
+def score_model(y, prediction):
+    y = y.flatten()
+    y_pred = prediction.flatten()
+
+    print(classification_report(y, y_pred.round()))
+    print("roc auc score", roc_auc_score(y, y_pred))
+    print("F1 Score", fbeta_score(y, y_pred.round(), 1))
+    print("F0.5 Score", fbeta_score(y, y_pred.round(), 0.5))
     
 
 def plot_roc_curve(mask, prediction, path):
