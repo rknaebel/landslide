@@ -64,7 +64,7 @@ def get_model_maxout(args):
     x = Activation('relu')(x)
     x = Conv2D(32, (1, 5), padding="same")(x)
     x = Maxout()(x)
-    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
     x = Dropout(0.25)(x)
     #
     x = Conv2D(64, (3, 1), padding="same")(x)
@@ -75,7 +75,7 @@ def get_model_maxout(args):
     x = Activation('relu')(x)
     x = Conv2D(64, (1, 3), padding="same")(x)
     x = Maxout()(x)
-    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
     x = Dropout(0.25)(x)
     #
     x = Conv2D(64, (3, 1), padding="same")(x)
@@ -86,7 +86,7 @@ def get_model_maxout(args):
     x = Activation('relu')(x)
     x = Conv2D(64, (1, 3), padding="same")(x)
     x = Maxout()(x)
-    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
     x = Dropout(0.25)(x)
     #
     x = AvgPool2D((3, 3), strides=(1, 1))(x)
@@ -109,7 +109,7 @@ def get_model_cifar(args):
     x = Activation('relu')(x)
     x = Conv2D(32, (1, 3), padding='same')(x)
     x = Activation('relu')(x)
-    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
     x = Dropout(0.25)(x)
 
     x = Conv2D(64, (3, 1), padding='same')(x)
@@ -120,7 +120,7 @@ def get_model_cifar(args):
     x = Activation('relu')(x)
     x = Conv2D(64, (1, 3), padding='same')(x)
     x = Activation('relu')(x)
-    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
     x = Dropout(0.25)(x)
 
     x = Conv2D(32, (3, 1), padding='same')(x)
@@ -131,7 +131,7 @@ def get_model_cifar(args):
     x = Activation('relu')(x)
     x = Conv2D(32, (1, 3), padding='same')(x)
     x = Activation('relu')(x)
-    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
     x = Dropout(0.25)(x)
 
     x = AvgPool2D((3, 3), strides=(1, 1))(x)
@@ -199,7 +199,7 @@ def get_model_4(args):
     # this returns x + y.
     x = merge([x, y], mode='sum')
     x = Activation('relu')(x)
-    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
 
     y = Conv2D(64, (3, 1), padding='same', activation="relu")(x)
     y = Conv2D(64, (1, 3), padding='same', activation="relu")(y)
@@ -208,7 +208,9 @@ def get_model_4(args):
     # this returns x + y.
     x = merge([x, y], mode='sum')
     x = Conv2D(32, (1, 1), padding='same', activation="relu")(x)
-
+    x = Activation('relu')(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
+    
     y = Conv2D(32, (3, 1), padding='same', activation="relu")(x)
     y = Conv2D(32, (1, 3), padding='same', activation="relu")(y)
     y = Conv2D(32, (3, 1), padding='same', activation="relu")(y)
@@ -216,7 +218,7 @@ def get_model_4(args):
     # this returns x + y.
     x = merge([x, y], mode='sum')
     x = Activation('relu')(x)
-    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
 
     x = AvgPool2D((3, 3), strides=(1, 1))(x)
     x = Flatten()(x)
@@ -228,12 +230,12 @@ def get_model_4(args):
 
 
 model_pool = {
-    "test"              : get_test_model,
-    "simple_conv"       : get_model_1,
-    "medium_maxout_conv": get_model_maxout,
-    "inception"         : get_model_inception,
-    "resnet"            : get_model_4,
-    "cifar"             : get_model_cifar
+    "test"       : get_test_model,
+    "simple_conv": get_model_1,
+    "maxout"     : get_model_maxout,
+    "inception"  : get_model_inception,
+    "resnet"     : get_model_4,
+    "cifar"      : get_model_cifar
 }
 
 
