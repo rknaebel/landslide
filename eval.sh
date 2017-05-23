@@ -2,9 +2,10 @@
 
 export CUDA_VISIBLE_DEVICES=$1
 DATA=$2
-AREA=$3
-TEST=$4
-BS=$5
+P=$3
+AREA=$4
+TEST=$5
+BS=$6
 
 python3 main.py --modes eval --data $DATA \
                 --model cifar_as${AREA}_p${P//./}_t${TEST} \
