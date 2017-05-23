@@ -1,15 +1,31 @@
-# evaluation
-python3 main.py --mode eval --data /home/ahmed/data/ --model models/model_x1.h5 \
-                --area 25 --batch 2048
+#!/usr/bin/env bash
 
-python3 main.py --mode eval --data /home/ahmed/data/ --model models/model_x2.h5 \
-                --area 25 --batch 2048
+export CUDA_VISIBLE_DEVICES=$1
+DATA=$2
+AREA=$3
+TEST=$4
+BS=$5
 
-python3 main.py --mode eval --data /home/ahmed/data/ --model models/model_x3.h5 \
-                --area 25 --batch 2048
+python3 main.py --modes eval --data $DATA \
+                --model cifar_as${AREA}_p${P//./}_t${TEST} \
+                --tmp \
+                --area $AREA --batch $BS \
+                --test ${TEST}
 
-python3 main.py --mode eval --data /home/ahmed/data/ --model models/model_x4.h5 \
-                --area 25 --batch 2048
+python3 main.py --modes eval --data $DATA \
+                --model maxout_as${AREA}_p${P//./}_t${TEST} \
+                --tmp \
+                --area $AREA --batch $BS \
+                --test ${TEST}
 
-python3 main.py --mode eval --data /home/ahmed/data/ --model models/model_x5.h5 \
-                --area 25 --batch 2048
+python3 main.py --modes eval --data $DATA \
+                --model inception_as${AREA}_p${P//./}_t${TEST} \
+                --tmp \
+                --area $AREA --batch $BS \
+                --test ${TEST}
+
+python3 main.py --modes eval --data $DATA \
+                --model resnet_as${AREA}_p${P//./}_t${TEST} \
+                --tmp \
+                --area $AREA --batch $BS \
+                --test ${TEST}

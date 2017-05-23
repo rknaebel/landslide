@@ -149,7 +149,7 @@ def main_eval():
     model = load_model(args.model_path + "/model.h5",
                        custom_objects=evaluation.get_metrics())
     print("load evaluation image")
-    img = dataset.load_image_eval(args.data)
+    img = dataset.load_image_eval(args.data, args.test_image)
     print("run evaluation on final year")
     y_pred = evaluation.predict_image(model, img, args)
     np.save("{}/pred.npy".format(args.model_path), y_pred)
