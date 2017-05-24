@@ -126,10 +126,11 @@ def main_train():
     print(model.summary())
     print("define callbacks")
     cp = ModelCheckpoint(filepath=args.model_path + "model.h5",
+                         monitor='val_f05_score',
                          verbose=False,
                          save_best_only=True)
     csv = CSVLogger('{}/train.log'.format(args.model_path))
-    early = EarlyStopping(monitor='val_loss',
+    early = EarlyStopping(monitor='val_f05_score',
                           patience=2,
                           verbose=False)
     print("start training")
@@ -157,7 +158,7 @@ def main_eval():
 
 def main_visualization():
     mask = dataset.load_mask_eval(args.data, args.test_image)
-    y_pred_path = args.model_path + args.pred
+    y_pred_path = args.model_path + "pred.npy"
     print("plot model")
     model = load_model(args.model_path + "model.h5",
                        custom_objects=evaluation.get_metrics())

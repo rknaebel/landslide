@@ -14,10 +14,10 @@ def plot_precision_recall(mask, prediction, path):
     decreasing_max_precision = np.maximum.accumulate(precision)[::-1]
 
     plt.clf()
-    fig, ax = plt.subplots(1, 1)
-    ax.hold(True)
-    ax.plot(recall, precision, '--b')
-    ax.step(recall[::-1], decreasing_max_precision, '-r')
+    #fig, ax = plt.subplots(1, 1)
+    #ax.hold(True)
+    plt.plot(recall, precision, '--b')
+    #ax.step(recall[::-1], decreasing_max_precision, '-r')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
 
@@ -31,8 +31,8 @@ def plot_precision_recall_curves(mask, prediction, path):
     precision, recall, thresholds = precision_recall_curve(y, y_pred)
     
     plt.clf()
-    plt.plot(thresholds, recall, label="Recall")
-    plt.plot(thresholds, precision, label="Precision")
+    plt.plot(recall, label="Recall")
+    plt.plot(precision, label="Precision")
     plt.xlabel('Threshold')
     plt.ylabel('Score')
     
