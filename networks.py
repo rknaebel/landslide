@@ -231,10 +231,11 @@ def get_model_resnet(args):
 def get_model_resnet2(args):
     """First res network implementation"""
     def res_block(x, fsize):
+        xx = Conv2D(fsize, (1, 1), padding='same', activation="relu")(x)
         y = Conv2D(fsize, (3, 3), padding='same', activation="relu")(x)
         y = Conv2D(fsize, (3, 3), padding='same')(y)
         # this returns x + y.
-        x = merge([x, y], mode='sum')
+        x = merge([xx, y], mode='sum')
         x = Activation('relu')(x)
         return x
 
