@@ -30,7 +30,7 @@ def predict_image(model, img, args):
     img = padding(img, offset)
     
     y_pred = []
-    for batch in generate_patches_full(img, args.batch_size, args.area_size):
+    for batch in generate_patches_full(img, args.batch_size*10, args.area_size):
         y_pred.append(model.predict(batch, batch_size=args.batch_size, verbose=True))
     y_pred = np.concatenate(y_pred, axis=0)
     # reshape to original xy-dimensions
