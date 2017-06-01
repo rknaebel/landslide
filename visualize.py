@@ -6,6 +6,29 @@ from sklearn.metrics import (
     roc_auc_score, roc_curve
 )
 
+import os
+
+def scores(y_true, y_pred):
+    for (path, dirnames, fnames) in os.walk("results/"):
+        for f in fnames:
+            if path[-1] == "1" and f.endswith("npy"):
+                y_pred = np.load(os.path.join(path, f)).flatten()
+                print(path)
+                tp = np.sum(np.logical_and(y_pred >= 0.5, y_true == 1))
+                tn = np.sum(np.logical_and(y_pred < 0.5, y_true == 0))
+                fp = np.sum(np.logical_and(y_pred >= 0.5, y_true == 0))
+                fn = np.sum(np.logical_and(y_pred < 0.5, y_true == 1))
+                precision = tp / (tp + fp)
+                recall = tp / (tp + fn)
+                accuracy = (tp + tn) / len(y_true)
+                f1_score  = 2 * (precision * recall) / (precision + recall)
+                f05_score = (1 + 0.5**2) * (precision * recall) / (0.5**2 * precision + recall)
+                print("  precision:", precision)
+                print("  recall:", recall)
+                print("  accuracy:", accuracy)
+                print("  f1 score:", f1_score)
+                print("  f0.5 score:", f05_score)
+
 
 def plot_precision_recall(mask, prediction, path):
     y = mask.flatten()

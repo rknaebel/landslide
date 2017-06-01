@@ -74,14 +74,17 @@ args.steps_per_val = args.samples_val // args.batch_size
 args.model_path = "{}/{}/".format("/tmp/rk" if args.tmp else "results",
                                   args.model)
 
-if not os.path.exists(args.model_path):
-    os.makedirs(args.model_path)
+
+def exists_or_make_path(p):
+    if not os.path.exists(p):
+        os.makedirs(p)
 
 
 ################################################################################
 
 
 def main_train():
+    exists_or_make_path(args.model_path)
     if args.h5data:
         print("check for data.h5")
         try:

@@ -186,7 +186,7 @@ def get_model_inception(args):
     return Model(input_image, x)
 
 
-def get_model_4(args):
+def get_model_resnet(args):
     """First res network implementation"""
     x = input_image = Input(shape=(args.area_size, args.area_size, 14))
 
@@ -228,14 +228,48 @@ def get_model_4(args):
 
     return Model(input_image, x)
 
+def get_model_resnet2(args):
+    """First res network implementation"""
+    def res_block(x, fsize):
+        y = Conv2D(fsize, (3, 3), padding='same', activation="relu")(x)
+        y = Conv2D(fsize, (3, 3), padding='same')(y)
+        # this returns x + y.
+        x = merge([x, y], mode='sum')
+        x = Activation('relu')(x)
+        return x
+
+    x = input_image = Input(shape=(args.area_size, args.area_size, 14))
+
+    x = Conv2D(64, (1, 1), padding='same')(x)
+
+    x = res_block(x, 64)
+    x = res_block(x, 64)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
+
+    x = res_block(x, 128)
+    x = res_block(x, 128)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
+
+    x = res_block(x, 256)
+    x = res_block(x, 256)
+    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
+
+    x = AvgPool2D((3, 3), strides=(1, 1))(x)
+    x = Flatten()(x)
+    x = Dense(1)(x)
+    x = Activation('sigmoid')(x)
+
+    return Model(input_image, x)
+
 
 model_pool = {
     "test"       : get_test_model,
     "simple_conv": get_model_1,
     "maxout"     : get_model_maxout,
     "inception"  : get_model_inception,
-    "resnet"     : get_model_4,
-    "cifar"      : get_model_cifar
+    "resnet"     : get_model_resnet,
+    "cifar"      : get_model_cifar,
+    "resnet2"    : get_model_resnet2
 }
 
 
