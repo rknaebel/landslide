@@ -1,4 +1,5 @@
-from keras.layers import Activation, AvgPool2D, Conv2D, Dense, Dropout, Flatten, Input, MaxPool2D, merge
+from keras.layers import Activation, AvgPool2D, Conv2D, Dense, Dropout, Flatten, Input, MaxPool2D, merge, \
+    BatchNormalization
 from keras.models import Model, Sequential
 
 from utils import Maxout
@@ -19,7 +20,7 @@ def get_convnet_landslide_all(args) -> Model:
     model.add(Dropout(0.25))
     model.add(Dense(1, name='last_layer'))
     model.add(Activation('sigmoid'))
-    
+
     return model
 
 
@@ -36,7 +37,7 @@ def get_test_model(args):
 
 def get_model_1(args):
     x = input_image = Input(shape=(args.area_size, args.area_size, 14))
-    
+
     x = Conv2D(32, (5, 5))(x)
     x = Activation('relu')(x)
     x = Conv2D(16, (3, 3))(x)
@@ -49,13 +50,13 @@ def get_model_1(args):
     #
     x = Dense(1, name='last_layer')(x)
     x = Activation('sigmoid')(x)
-    
+
     return Model(input_image, x)
 
 
 def get_model_maxout(args):
     x = input_image = Input(shape=(args.area_size, args.area_size, 14))
-    
+
     x = Conv2D(32, (5, 1), padding="same")(x)
     x = Activation('relu')(x)
     x = Conv2D(32, (1, 5), padding="same")(x)
@@ -94,20 +95,34 @@ def get_model_maxout(args):
     #
     x = Dense(1, name='last_layer')(x)
     x = Activation('sigmoid')(x)
-    
+
     return Model(input_image, x)
 
 
 def get_model_cifar(args):
     x = input_image = Input(shape=(args.area_size, args.area_size, 14))
 
-    x = Conv2D(32, (3, 1), padding='same')(x)
+    x = Conv2D(32, (1, 1), padding="same")(x)
+    x = BatchNormalization()(x)
+
+    x = Conv2D(64, (3, 1), padding='same')(x)
     x = Activation('relu')(x)
-    x = Conv2D(32, (1, 3), padding='same')(x)
+    x = Conv2D(64, (1, 3), padding='same')(x)
     x = Activation('relu')(x)
-    x = Conv2D(32, (3, 1), padding='same')(x)
+    x = Conv2D(64, (3, 1), padding='same')(x)
     x = Activation('relu')(x)
-    x = Conv2D(32, (1, 3), padding='same')(x)
+    x = Conv2D(64, (1, 3), padding='same')(x)
+    x = Activation('relu')(x)
+    x = MaxPool2D(pool_size=(2, 2), strides=2)(x)
+    x = Dropout(0.25)(x)
+
+    x = Conv2D(128, (3, 1), padding='same')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(128, (1, 3), padding='same')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(128, (3, 1), padding='same')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(128, (1, 3), padding='same')(x)
     x = Activation('relu')(x)
     x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
     x = Dropout(0.25)(x)
@@ -119,27 +134,16 @@ def get_model_cifar(args):
     x = Conv2D(64, (3, 1), padding='same')(x)
     x = Activation('relu')(x)
     x = Conv2D(64, (1, 3), padding='same')(x)
-    x = Activation('relu')(x)
-    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
-    x = Dropout(0.25)(x)
-
-    x = Conv2D(32, (3, 1), padding='same')(x)
-    x = Activation('relu')(x)
-    x = Conv2D(32, (1, 3), padding='same')(x)
-    x = Activation('relu')(x)
-    x = Conv2D(32, (3, 1), padding='same')(x)
-    x = Activation('relu')(x)
-    x = Conv2D(32, (1, 3), padding='same')(x)
     x = Activation('relu')(x)
     x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
     x = Dropout(0.25)(x)
 
     x = AvgPool2D((3, 3), strides=(1, 1))(x)
     x = Flatten(name="flatten")(x)
-    x = Dropout(0.5)(x)
+    # x = Dropout(0.5)(x)
     x = Dense(1)(x)
     x = Activation('sigmoid')(x)
-    
+
     return Model(input_image, x)
 
 
@@ -176,7 +180,7 @@ def get_model_inception(args):
     tower_3 = Conv2D(32, (1, 1), padding='same', activation='relu')(tower_3)
     x = merge([tower_0, tower_1, tower_2, tower_3], mode='concat', concat_axis=3)
     x = Dropout(0.5)(x)
-    
+
     x = AvgPool2D((3, 3), strides=(1, 1))(x)
     x = Flatten()(x)
     # model.add(Dropout(0.5))
@@ -210,7 +214,7 @@ def get_model_resnet(args):
     x = Conv2D(32, (1, 1), padding='same', activation="relu")(x)
     x = Activation('relu')(x)
     x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
-    
+
     y = Conv2D(32, (3, 1), padding='same', activation="relu")(x)
     y = Conv2D(32, (1, 3), padding='same', activation="relu")(y)
     y = Conv2D(32, (3, 1), padding='same', activation="relu")(y)
@@ -228,32 +232,36 @@ def get_model_resnet(args):
 
     return Model(input_image, x)
 
+
 def get_model_resnet2(args):
     """First res network implementation"""
-    def res_block(x, fsize):
-        xx = Conv2D(fsize, (1, 1), padding='same', activation="relu")(x)
-        y = Conv2D(fsize, (3, 3), padding='same', activation="relu")(x)
+
+    def res_block(x, fsize, downsample=False):
+        x = Conv2D(fsize, (1, 1), padding='same')(x)
+        y = BatchNormalization()(x)
+        y = Activation("relu")(y)
+        y = Conv2D(fsize, (3, 3), padding='same')(y)
+        y = BatchNormalization()(y)
+        y = Activation("relu")(y)
         y = Conv2D(fsize, (3, 3), padding='same')(y)
         # this returns x + y.
-        x = merge([xx, y], mode='sum')
-        x = Activation('relu')(x)
+        x = merge([x, y], mode='sum')
+        if downsample:
+            x = Conv2D(fsize, (3, 3), strides=2, padding="same", activation="relu")(x)
         return x
 
     x = input_image = Input(shape=(args.area_size, args.area_size, 14))
 
-    x = Conv2D(64, (1, 1), padding='same')(x)
-
     x = res_block(x, 64)
     x = res_block(x, 64)
-    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
+    x = res_block(x, 64, downsample=True)
 
     x = res_block(x, 128)
     x = res_block(x, 128)
-    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
+    x = res_block(x, 128, downsample=True)
 
     x = res_block(x, 256)
-    x = res_block(x, 256)
-    x = MaxPool2D(pool_size=(2, 2), strides=1)(x)
+    x = res_block(x, 256, downsample=True)
 
     x = AvgPool2D((3, 3), strides=(1, 1))(x)
     x = Flatten()(x)
